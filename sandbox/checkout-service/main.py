@@ -7,6 +7,7 @@ import structlog
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import text
+from sqlalchemy.exc import TimeoutError as SQLTimeoutError
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from logging_conf import setup_logging
@@ -71,7 +72,7 @@ async def checkout(req: CheckoutRequest) -> dict:
                 {"u": req.user_id, "a": req.amount_cents},
             )
             order_id = result.scalar_one()
-    except TimeoutError:
+    except (SQLTimeoutError, TimeoutError):
         log.error("db_pool_timeout", user_id=req.user_id, pool_size=POOL_SIZE)
         raise HTTPException(503, "database connection pool exhausted")
     except Exception as e:
