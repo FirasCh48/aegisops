@@ -5,6 +5,7 @@ import random
 
 import structlog
 from fastapi import FastAPI, HTTPException
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
 from logging_conf import setup_logging
@@ -18,11 +19,22 @@ BASE_LATENCY_MS = int(os.getenv("BASE_LATENCY_MS", "40"))
 FAILURE_RATE = float(os.getenv("FAILURE_RATE", "0.0"))
 
 app = FastAPI(title=SERVICE, version=VERSION)
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 
 class AuthorizeRequest(BaseModel):
     user_id: int
     amount_cents: int
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    log.info(
+        "service_started",
+        version=VERSION,
+        base_latency_ms=BASE_LATENCY_MS,
+        failure_rate=FAILURE_RATE,
+    )
 
 
 @app.get("/health")

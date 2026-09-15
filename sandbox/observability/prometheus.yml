@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: checkout-service
+    static_configs:
+      - targets: ["host.docker.internal:8001"]
+        labels:
+          service: checkout-service
+
+  - job_name: payment-service
+    static_configs:
+      - targets: ["host.docker.internal:8002"]
+        labels:
+          service: payment-service
+
+  - job_name: inventory-service
+    static_configs:
+      - targets: ["host.docker.internal:8003"]
+        labels:
+          service: inventory-service
