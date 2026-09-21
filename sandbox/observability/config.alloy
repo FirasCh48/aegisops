@@ -1,0 +1,42 @@
+// Découvre les fichiers de logs du bac à sable
+local.file_match "services" {
+  path_targets = [{"__path__" = "/var/log/aegis/*.log"}]
+}
+
+// Les lit en continu
+loki.source.file "services" {
+  targets    = local.file_match.services.targets
+  forward_to = [loki.process.json.receiver]
+}
+
+// Parse le JSON, promeut service et level en labels,
+// et utilise l'horodatage de l'événement plutôt que l'heure de lecture
+loki.process "json" {
+  stage.json {
+    expressions = {
+      service = "",
+      level   = "",
+      ts      = "timestamp",
+    }
+  }
+
+  stage.labels {
+    values = {
+      service = "",
+      level   = "",
+    }
+  }
+
+  stage.timestamp {
+    source = "ts"
+    format = "RFC3339Nano"
+  }
+
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

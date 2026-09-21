@@ -19,3 +19,5 @@ models/
 .ruff_cache/
 .pytest_cache/
 qdrant_storage/
+sandbox/logs/
+sandbox/.pids/
