@@ -39,3 +39,9 @@ sum(rate(dependency_failures_total[5m])) by (dependency, reason)
 
 Mesurées sur i5-10210U, 100 requêtes séquentielles.
 La valeur absolue importe peu ; c'est l'écart à cette base qui signale l'incident.
+
+
+Mesurées avec `sandbox/loadgen.py --rps 5 --pattern flat`, client HTTP
+persistant et concurrence bornée. Les valeurs antérieures (p95 checkout
+0,47 s) étaient mesurées avec une boucle `curl` séquentielle : elles
+mesuraient le coût de création du processus client, pas le service.
