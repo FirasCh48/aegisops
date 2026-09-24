@@ -1,5 +1,6 @@
 """checkout-service : orchestre inventory + payment, puis persiste la commande."""
 import os
+import random
 import time
 
 import httpx
@@ -45,6 +46,28 @@ engine = create_async_engine(
 app = FastAPI(title=SERVICE, version=VERSION)
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
+# --- Injection de pannes -------------------------------------------------
+# Le router n'est monté que si FAULTS_ENABLED=1. Sans cette variable, ce
+# bloc ne s'exécute pas : le module faults n'est même pas importé, et
+# l'endpoint /admin/fault n'existe pas. Le code métier ci-dessous ne
+# contient aucune branche conditionnelle liée au chaos.
+FAULTS_ENABLED = os.getenv("FAULTS_ENABLED", "0") == "1"
+fault_registry = None
+_leaked_connections: list = []
+
+if FAULTS_ENABLED:
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from faults.registry import FaultRegistry
+    from faults.router import build_router
+
+    fault_registry = FaultRegistry(SERVICE)
+    fault_registry.register("connection_leak")
+    app.include_router(build_router(fault_registry))
+# -------------------------------------------------------------------------
+
 
 class CheckoutRequest(BaseModel):
     user_id: int
@@ -71,12 +94,63 @@ async def startup() -> None:
         version=VERSION,
         pool_size=POOL_SIZE,
         dependency_timeout_s=DEPENDENCY_TIMEOUT,
+        faults_enabled=FAULTS_ENABLED,
     )
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    """Rend les connexions volontairement fuitées, sinon le pool reste
+    saturé côté Postgres après l'arrêt du service."""
+    for conn in _leaked_connections:
+        try:
+            await conn.close()
+        except Exception:
+            pass
+    _leaked_connections.clear()
 
 
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "service": SERVICE, "version": VERSION}
+
+
+async def _maybe_leak_connection() -> None:
+    """Emprunte une connexion au pool sans jamais la rendre.
+
+    Reproduit un bug classique : une connexion ouverte dans un chemin de
+    code qui ne la ferme pas. Le pool se vide progressivement, et la
+    saturation arrive plusieurs minutes après le déploiement fautif — ce
+    décalage est exactement ce qui rend ces incidents difficiles à
+    diagnostiquer.
+
+    À distinguer d'un pool sous-dimensionné : même symptôme
+    (db_pool_timeout), causes et remédiations opposées.
+    """
+    if fault_registry is None or not fault_registry.is_active("connection_leak"):
+        return
+
+    params = fault_registry.get("connection_leak").params
+    rate = float(params.get("rate", 0.3))
+    max_leaked = int(params.get("max_leaked", POOL_SIZE))
+
+    if len(_leaked_connections) >= max_leaked:
+        return
+    if random.random() >= rate:
+        return
+
+    try:
+        conn = await engine.connect()
+        _leaked_connections.append(conn)
+        db_pool_in_use.set(engine.pool.checkedout())
+        log.info(
+            "connection_leaked",
+            leaked_total=len(_leaked_connections),
+            pool_size=POOL_SIZE,
+        )
+    except Exception:
+        # Le pool est déjà vide : la fuite a atteint son objectif.
+        pass
 
 
 async def call_dependency(
@@ -115,6 +189,8 @@ async def call_dependency(
 
 @app.post("/checkout")
 async def checkout(req: CheckoutRequest) -> dict:
+    await _maybe_leak_connection()
+
     async with httpx.AsyncClient(timeout=DEPENDENCY_TIMEOUT) as client:
         await call_dependency(
             client,
