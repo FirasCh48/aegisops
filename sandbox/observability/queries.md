@@ -30,6 +30,41 @@ sum(rate(dependency_failures_total[5m])) by (dependency, reason)
 
 ## Valeurs de référence (état sain)
 
+## Valeurs de référence (état sain)
+
+| Métrique | Valeur nominale |
+| --- | --- |
+| p95 checkout | ~0,13 s |
+| p95 inventory | ~0,02 s |
+| p95 payment | ~0,05 s |
+| taux d'erreur | 0 |
+| débit | ~5 req/s |
+
+Mesurées avec `sandbox/loadgen.py --rps 5 --pattern flat` : client HTTP
+persistant, concurrence bornée à 20. Les valeurs antérieures (p95 à
+0,47 s) provenaient d'une boucle `curl` séquentielle et mesuraient le
+coût de création du processus client, pas le service. Écart : 72 %.
+
+## Signature d'une fuite de connexions
+
+| Phase | p95 | Taux d'erreur | Gauge du pool |
+| --- | --- | --- | --- |
+| Sain | ~0,13 s | 0 % | 0 |
+| Dégradation | ~1,1 s | 10 → 30 % | montée progressive |
+| Saturé | ~1,1 s | > 80 % | **1, et y reste** |
+
+Mesurée avec `POOL_TIMEOUT=1`. Le plateau de la gauge après l'arrêt du
+trafic est la preuve qui distingue une fuite d'un pool sous-dimensionné.
+
+
+
+
+
+
+
+
+
+
 | Métrique      | Valeur nominale |
 | ------------- | --------------- |
 | p95 checkout  | ~0,47 s         |
