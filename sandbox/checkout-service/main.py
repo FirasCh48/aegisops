@@ -14,10 +14,12 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from logging_conf import setup_logging
 from metrics import (
+    cache_entries,
     db_pool_in_use,
     db_pool_size,
     dependency_failures,
     dependency_latency,
+    refresh_memory_metrics,
 )
 
 SERVICE = "checkout-service"
@@ -47,13 +49,15 @@ app = FastAPI(title=SERVICE, version=VERSION)
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # --- Injection de pannes -------------------------------------------------
-# Le router n'est monté que si FAULTS_ENABLED=1. Sans cette variable, ce
-# bloc ne s'exécute pas : le module faults n'est même pas importé, et
-# l'endpoint /admin/fault n'existe pas. Le code métier ci-dessous ne
-# contient aucune branche conditionnelle liée au chaos.
+# Le router n'est monté que si FAULTS_ENABLED=1. Sans cette variable, le
+# module faults n'est même pas importé et l'endpoint /admin/fault n'existe
+# pas. Le code métier ne contient aucune branche conditionnelle de chaos :
+# seulement deux appels à des fonctions qui sortent immédiatement quand le
+# registre est absent.
 FAULTS_ENABLED = os.getenv("FAULTS_ENABLED", "0") == "1"
 fault_registry = None
 _leaked_connections: list = []
+_response_cache: dict[str, bytes] = {}
 
 if FAULTS_ENABLED:
     import sys
@@ -65,6 +69,7 @@ if FAULTS_ENABLED:
 
     fault_registry = FaultRegistry(SERVICE)
     fault_registry.register("connection_leak")
+    fault_registry.register("memory_leak")
     app.include_router(build_router(fault_registry))
 # -------------------------------------------------------------------------
 
@@ -89,10 +94,13 @@ async def startup() -> None:
         )
     db_pool_size.set(POOL_SIZE)
     db_pool_in_use.set(0)
+    cache_entries.set(0)
+    refresh_memory_metrics()
     log.info(
         "service_started",
         version=VERSION,
         pool_size=POOL_SIZE,
+        pool_timeout_s=POOL_TIMEOUT,
         dependency_timeout_s=DEPENDENCY_TIMEOUT,
         faults_enabled=FAULTS_ENABLED,
     )
@@ -100,14 +108,18 @@ async def startup() -> None:
 
 @app.on_event("shutdown")
 async def shutdown() -> None:
-    """Rend les connexions volontairement fuitées, sinon le pool reste
-    saturé côté Postgres après l'arrêt du service."""
+    """Libère ce que les pannes ont volontairement retenu.
+
+    Sans ce handler, les connexions fuitées resteraient ouvertes côté
+    Postgres et la session suivante démarrerait avec un pool déjà occupé.
+    """
     for conn in _leaked_connections:
         try:
             await conn.close()
         except Exception:
             pass
     _leaked_connections.clear()
+    _response_cache.clear()
 
 
 @app.get("/health")
@@ -120,12 +132,11 @@ async def _maybe_leak_connection() -> None:
 
     Reproduit un bug classique : une connexion ouverte dans un chemin de
     code qui ne la ferme pas. Le pool se vide progressivement, et la
-    saturation arrive plusieurs minutes après le déploiement fautif — ce
-    décalage est exactement ce qui rend ces incidents difficiles à
-    diagnostiquer.
+    saturation arrive plusieurs minutes après le déploiement fautif.
 
     À distinguer d'un pool sous-dimensionné : même symptôme
-    (db_pool_timeout), causes et remédiations opposées.
+    (db_pool_timeout), causes et remédiations opposées. Le signal qui
+    sépare les deux est la gauge, qui ne redescend jamais ici.
     """
     if fault_registry is None or not fault_registry.is_active("connection_leak"):
         return
@@ -151,6 +162,35 @@ async def _maybe_leak_connection() -> None:
     except Exception:
         # Le pool est déjà vide : la fuite a atteint son objectif.
         pass
+
+
+def _maybe_leak_memory(req: CheckoutRequest) -> None:
+    """Fait grossir un cache qui n'expire jamais.
+
+    Reproduit le bug de cache le plus courant en production : une clé
+    contenant un élément unique (ici un timestamp nanoseconde), ce qui
+    rend toute réutilisation impossible et supprime de fait l'expiration
+    naturelle.
+
+    Contrairement aux autres pannes, celle-ci ne casse rien pendant
+    longtemps : le taux d'erreur reste à zéro pendant que la mémoire
+    monte. L'agent doit détecter une tendance, pas un seuil d'erreur.
+    """
+    if fault_registry is None or not fault_registry.is_active("memory_leak"):
+        return
+
+    params = fault_registry.get("memory_leak").params
+    kb_per_request = int(params.get("kb_per_request", 256))
+    # Plafond obligatoire : la machine fait déjà tourner cinq conteneurs.
+    # Une fuite non bornée la figerait et ferait perdre la session.
+    max_mb = int(params.get("max_mb", 300))
+
+    if len(_response_cache) * kb_per_request / 1024 >= max_mb:
+        return
+
+    key = f"{req.user_id}:{req.sku}:{time.time_ns()}"
+    _response_cache[key] = b"\x00" * (kb_per_request * 1024)
+    cache_entries.set(len(_response_cache))
 
 
 async def call_dependency(
@@ -189,7 +229,9 @@ async def call_dependency(
 
 @app.post("/checkout")
 async def checkout(req: CheckoutRequest) -> dict:
+    refresh_memory_metrics()
     await _maybe_leak_connection()
+    _maybe_leak_memory(req)
 
     async with httpx.AsyncClient(timeout=DEPENDENCY_TIMEOUT) as client:
         await call_dependency(

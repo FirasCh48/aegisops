@@ -80,3 +80,18 @@ Mesurées avec `sandbox/loadgen.py --rps 5 --pattern flat`, client HTTP
 persistant et concurrence bornée. Les valeurs antérieures (p95 checkout
 0,47 s) étaient mesurées avec une boucle `curl` séquentielle : elles
 mesuraient le coût de création du processus client, pas le service.
+
+## Signature d'une fuite mémoire
+
+| Signal | Comportement |
+| --- | --- |
+| `process_memory_rss_mb` | montée linéaire continue, jamais de redescente |
+| `app_cache_entries` | croît avec la mémoire — désigne le cache comme cause |
+| taux d'erreur | **reste à 0** |
+| p95 | stable (~144 ms) |
+
+Mesurée : 77 Mo → 390 Mo en ~4 minutes à 8 req/s, 787 requêtes, zéro erreur.
+
+Une fuite mémoire ne casse rien avant de tout casser. L'agent doit
+détecter une tendance, pas un seuil d'erreur. Fenêtre d'analyse
+minimale : 10 minutes. Une fenêtre de
