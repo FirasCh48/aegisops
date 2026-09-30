@@ -94,4 +94,60 @@ Mesurée : 77 Mo → 390 Mo en ~4 minutes à 8 req/s, 787 requêtes, zéro erreu
 
 Une fuite mémoire ne casse rien avant de tout casser. L'agent doit
 détecter une tendance, pas un seuil d'erreur. Fenêtre d'analyse
-minimale : 10 minutes. Une fenêtre de
+minimale : 10 minutes. Une fenêtre de2 minutes ne montre qu'une
+variation de quelques pourcents, indiscernable du bruit.
+
+## Signature d'une dépendance lente
+
+| Signal | Comportement |
+| --- | --- |
+| p95 de la dépendance | saut immédiat au timeout de l'appelant (2069 ms) |
+| `dependency_failures{reason="timeout"}` | apparaît en ~10 s |
+| p95 des autres dépendances | inchangé — les innocente |
+| retour à la normale | **immédiat à la levée, sans redémarrage** |
+
+## Récapitulatif des trois signatures
+
+| Panne | Taux d'erreur | Signal discriminant | Récupération |
+| --- | --- | --- | --- |
+| `connection_leak` | > 80 % | gauge du pool à 1, plateau | redémarrage requis |
+| `slow_response` | > 90 % | p95 dépendance au timeout | levée suffit |
+| `memory_leak` | **0 %** | tendance mémoire croissante | redémarrage requis |
+
+La colonne « récupération » est celle qui compte pour le Remediation
+Planner : deux de ces pannes exigent un redéploiement, une seule se
+résout en arrêtant la cause.
+
+
+## Signature d'une mauvaise release
+
+| Signal | Comportement |
+| --- | --- |
+| log `deployment` | `from_version` → `to_version`, quelques secondes avant |
+| symptôme | identique à `connection_leak` |
+| remédiation | **rollback**, pas augmentation du pool |
+
+Le symptôme seul ne permet pas de conclure. C'est la corrélation
+temporelle avec le déploiement qui désigne la cause.
+
+## Signature d'une saturation CPU
+
+| Signal | Comportement |
+| --- | --- |
+| p95 | montée sur **toutes** les dépendances simultanément |
+| taux d'erreur | faible ou nul |
+| logs | rien d'anormal |
+
+Aucune dépendance n'est en cause : la boucle d'événements est bloquée.
+Une panne qui monte partout à la fois est locale, pas propagée.
+
+## Signature d'une cascade de 500
+
+| Signal | Comportement |
+| --- | --- |
+| côté client | `409` — trompeur |
+| logs inventory | `inventory_internal_error`, 500 |
+| p95 inventory | inchangé — le service répond vite, mais faux |
+
+Le code vu par le client ne reflète pas l'erreur réelle de la
+dépendance. L'agent doit lire les logs du service en amont.

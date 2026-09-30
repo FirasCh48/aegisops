@@ -1,4 +1,5 @@
 """checkout-service : orchestre inventory + payment, puis persiste la commande."""
+import math
 import os
 import random
 import time
@@ -51,13 +52,16 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 # --- Injection de pannes -------------------------------------------------
 # Le router n'est monté que si FAULTS_ENABLED=1. Sans cette variable, le
 # module faults n'est même pas importé et l'endpoint /admin/fault n'existe
-# pas. Le code métier ne contient aucune branche conditionnelle de chaos :
-# seulement deux appels à des fonctions qui sortent immédiatement quand le
-# registre est absent.
+# pas. Le code métier ne contient que des appels à des fonctions qui
+# sortent immédiatement quand le registre est absent.
 FAULTS_ENABLED = os.getenv("FAULTS_ENABLED", "0") == "1"
 fault_registry = None
 _leaked_connections: list = []
 _response_cache: dict[str, bytes] = {}
+
+# La version est mutable en mémoire : un déploiement remplace le binaire,
+# pas seulement une variable d'environnement lue au démarrage.
+_current_version = VERSION
 
 if FAULTS_ENABLED:
     import sys
@@ -70,6 +74,8 @@ if FAULTS_ENABLED:
     fault_registry = FaultRegistry(SERVICE)
     fault_registry.register("connection_leak")
     fault_registry.register("memory_leak")
+    fault_registry.register("bad_release")
+    fault_registry.register("cpu_saturation")
     app.include_router(build_router(fault_registry))
 # -------------------------------------------------------------------------
 
@@ -98,7 +104,7 @@ async def startup() -> None:
     refresh_memory_metrics()
     log.info(
         "service_started",
-        version=VERSION,
+        version=_current_version,
         pool_size=POOL_SIZE,
         pool_timeout_s=POOL_TIMEOUT,
         dependency_timeout_s=DEPENDENCY_TIMEOUT,
@@ -124,19 +130,88 @@ async def shutdown() -> None:
 
 @app.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "service": SERVICE, "version": VERSION}
+    return {"status": "ok", "service": SERVICE, "version": _current_version}
+
+
+def _apply_bad_release() -> None:
+    """Simule un déploiement fautif.
+
+    Cette panne ne casse rien elle-même : elle change la version affichée
+    et active la fuite de connexions. Le symptôme sera donc identique à
+    celui de la panne #1 — c'est voulu.
+
+    Ce qui change, c'est qu'un log `deployment` précède l'incident de
+    quelques secondes. L'agent doit apprendre à corréler l'apparition du
+    symptôme avec un changement de version, et conclure « rollback »
+    plutôt que « augmenter la taille du pool ».
+    """
+    global _current_version
+
+    if fault_registry is None:
+        return
+
+    active = fault_registry.is_active("bad_release")
+    params = fault_registry.get("bad_release").params if active else {}
+    target = params.get("version", "v2.8") if active else VERSION
+
+    if target == _current_version:
+        return
+
+    previous = _current_version
+    _current_version = target
+    log.warning(
+        "deployment",
+        from_version=previous,
+        to_version=target,
+        deployed_by="ci-pipeline",
+    )
+
+    # Le déploiement fautif introduit la régression ; le rollback la retire.
+    if active:
+        fault_registry.enable("connection_leak", {"rate": 0.35})
+    elif fault_registry.is_active("connection_leak"):
+        fault_registry.disable("connection_leak")
+
+
+def _maybe_burn_cpu() -> None:
+    """Consomme du CPU dans la boucle d'événements.
+
+    Bornée à 80 ms par requête et désactivée automatiquement au bout de
+    60 secondes : la machine fait tourner cinq conteneurs et trois
+    services, une saturation non bornée la rendrait inutilisable.
+
+    Le blocage de la boucle asyncio est ce qui rend cette panne
+    intéressante : le service n'est pas « occupé à travailler », il est
+    incapable de traiter quoi que ce soit en parallèle. Toutes les
+    latences montent ensemble sans qu'aucune dépendance ne soit fautive.
+    """
+    if fault_registry is None or not fault_registry.is_active("cpu_saturation"):
+        return
+
+    state = fault_registry.get("cpu_saturation")
+    max_duration_s = float(state.params.get("max_duration_s", 60))
+
+    # Garde-fou : la panne s'éteint d'elle-même, même si on oublie le DELETE.
+    if state.elapsed_s > max_duration_s:
+        fault_registry.disable("cpu_saturation")
+        return
+
+    burn_ms = min(float(state.params.get("burn_ms", 40)), 80)
+    deadline = time.perf_counter() + burn_ms / 1000
+    x = 0.0
+    while time.perf_counter() < deadline:
+        x += math.sqrt(random.random())
 
 
 async def _maybe_leak_connection() -> None:
     """Emprunte une connexion au pool sans jamais la rendre.
 
     Reproduit un bug classique : une connexion ouverte dans un chemin de
-    code qui ne la ferme pas. Le pool se vide progressivement, et la
-    saturation arrive plusieurs minutes après le déploiement fautif.
+    code qui ne la ferme pas. Le pool se vide progressivement.
 
     À distinguer d'un pool sous-dimensionné : même symptôme
-    (db_pool_timeout), causes et remédiations opposées. Le signal qui
-    sépare les deux est la gauge, qui ne redescend jamais ici.
+    (db_pool_timeout), remédiations opposées. Le signal qui sépare les
+    deux est la gauge, qui ne redescend jamais ici.
     """
     if fault_registry is None or not fault_registry.is_active("connection_leak"):
         return
@@ -158,6 +233,7 @@ async def _maybe_leak_connection() -> None:
             "connection_leaked",
             leaked_total=len(_leaked_connections),
             pool_size=POOL_SIZE,
+            version=_current_version,
         )
     except Exception:
         # Le pool est déjà vide : la fuite a atteint son objectif.
@@ -169,8 +245,7 @@ def _maybe_leak_memory(req: CheckoutRequest) -> None:
 
     Reproduit le bug de cache le plus courant en production : une clé
     contenant un élément unique (ici un timestamp nanoseconde), ce qui
-    rend toute réutilisation impossible et supprime de fait l'expiration
-    naturelle.
+    rend toute réutilisation impossible et supprime de fait l'expiration.
 
     Contrairement aux autres pannes, celle-ci ne casse rien pendant
     longtemps : le taux d'erreur reste à zéro pendant que la mémoire
@@ -181,8 +256,7 @@ def _maybe_leak_memory(req: CheckoutRequest) -> None:
 
     params = fault_registry.get("memory_leak").params
     kb_per_request = int(params.get("kb_per_request", 256))
-    # Plafond obligatoire : la machine fait déjà tourner cinq conteneurs.
-    # Une fuite non bornée la figerait et ferait perdre la session.
+    # Plafond obligatoire : sans borne, la fuite fige la machine.
     max_mb = int(params.get("max_mb", 300))
 
     if len(_response_cache) * kb_per_request / 1024 >= max_mb:
@@ -230,6 +304,8 @@ async def call_dependency(
 @app.post("/checkout")
 async def checkout(req: CheckoutRequest) -> dict:
     refresh_memory_metrics()
+    _apply_bad_release()
+    _maybe_burn_cpu()
     await _maybe_leak_connection()
     _maybe_leak_memory(req)
 
@@ -263,7 +339,12 @@ async def checkout(req: CheckoutRequest) -> dict:
         dependency_failures.labels(
             dependency="postgres", reason="pool_exhausted"
         ).inc()
-        log.error("db_pool_timeout", user_id=req.user_id, pool_size=POOL_SIZE)
+        log.error(
+            "db_pool_timeout",
+            user_id=req.user_id,
+            pool_size=POOL_SIZE,
+            version=_current_version,
+        )
         raise HTTPException(503, "database connection pool exhausted")
     except Exception as e:
         dependency_failures.labels(dependency="postgres", reason="error").inc()
@@ -278,5 +359,6 @@ async def checkout(req: CheckoutRequest) -> dict:
         user_id=req.user_id,
         auth_id=auth_id,
         sku=req.sku,
+        version=_current_version,
     )
     return {"order_id": order_id, "auth_id": auth_id, "status": "confirmed"}
