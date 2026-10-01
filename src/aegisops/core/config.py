@@ -18,5 +18,8 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash"
 
+    prometheus_url: str = "http://localhost:9090"
+    loki_url: str = "http://localhost:3100"
+
 
 settings = Settings()
