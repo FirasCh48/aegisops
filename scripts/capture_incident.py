@@ -9,11 +9,13 @@ d'attention mais du nombre d'étapes à enchaîner dans le bon ordre.
 Usage:
     uv run python scripts/capture_incident.py connection_leak
     uv run python scripts/capture_incident.py bad_release --duration 240
+    uv run python scripts/capture_incident.py slow_response --holdout
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -117,6 +119,29 @@ def _post(url: str, payload: dict | None = None) -> dict:
     return r.json() if r.content else {}
 
 
+def restart_services() -> None:
+    """Redémarre les trois services avant chaque capture.
+
+    Lever une panne ne répare pas l'état qu'elle a laissé derrière elle :
+    les connexions fuitées restent détenues, le cache gonflé reste en
+    mémoire. Une capture qui démarre sur un service déjà dégradé
+    enregistre une phase baseline polluée — observé lors de la première
+    campagne, où une baseline contenait 288 db_pool_timeout au lieu de
+    zéro.
+
+    C'est exactement ce que les postmortems décrivent sous la mention
+    « redémarrage requis » : l'écrire dans la documentation sans
+    l'appliquer dans le code produit des données fausses.
+    """
+    print("  [boot]  redémarrage des services")
+    script = ROOT / "sandbox" / "run_services.sh"
+    env = {**os.environ, "POOL_TIMEOUT": "1", "FAULTS_ENABLED": "1"}
+    subprocess.run([str(script), "restart"], cwd=ROOT, env=env, check=True)
+    # Laisse le temps aux services de rouvrir leurs ports et à Prometheus
+    # de les scraper au moins une fois.
+    time.sleep(15)
+
+
 def reset_environment() -> None:
     """Remet le bac à sable dans un état connu.
 
@@ -149,7 +174,13 @@ def verify_healthy() -> None:
     print("  [check] les trois services répondent")
 
 
-def capture(scenario_name: str, duration: int, warmup: int, rps: float) -> Path:
+def capture(
+    scenario_name: str,
+    duration: int,
+    warmup: int,
+    rps: float,
+    holdout: bool = False,
+) -> Path:
     scenario = SCENARIOS[scenario_name]
     target = SERVICES[scenario["service"]]
 
@@ -159,7 +190,9 @@ def capture(scenario_name: str, duration: int, warmup: int, rps: float) -> Path:
             f"({COLD_START_SKIP_S}s), sinon la phase baseline est vide."
         )
 
-    print(f"\n=== capture : {scenario_name} ===")
+    tag = " [holdout]" if holdout else ""
+    print(f"\n=== capture : {scenario_name}{tag} ===")
+    restart_services()
     reset_environment()
     verify_healthy()
 
@@ -247,12 +280,23 @@ def capture(scenario_name: str, duration: int, warmup: int, rps: float) -> Path:
                 "samples": loki.sample_by_event(selector, p_start, p_end),
             }
 
+    # Une baseline qui contient déjà des erreurs invalide la comparaison :
+    # l'agent ne peut pas juger qu'un état est anormal s'il n'a pas vu
+    # l'état normal. On marque le fichier plutôt que de le jeter — le
+    # script d'indexation décidera.
+    baseline_counts = logs["checkout-service"]["baseline"]["counts"]
+    baseline_errors = {
+        k: v for k, v in baseline_counts.items()
+        if k not in ("order_created", "fault_injected", "fault_cleared")
+    }
+
     incident_id = f"INC-{injected_at.strftime('%Y%m%d-%H%M%S')}-{scenario_name}"
     record = {
         "incident_id": incident_id,
         "scenario": scenario_name,
         "injected_service": scenario["service"],
         "params": scenario["params"],
+        "load": {"rps": rps, "pattern": "diurnal"},
         "window": {
             "start": window_start.isoformat(),
             "baseline_from": phases["baseline"][0].isoformat(),
@@ -271,7 +315,12 @@ def capture(scenario_name: str, duration: int, warmup: int, rps: float) -> Path:
             "root_cause": scenario["root_cause"],
             "remediation": scenario["remediation"],
         },
-        "holdout": False,
+        # holdout : réservé à l'évaluation. Ne servira jamais de graine à
+        # la génération synthétique en S6 — sinon le modèle serait
+        # entraîné sur des quasi-copies de son propre jeu de test, et la
+        # métrique obtenue serait excellente et mensongère.
+        "holdout": holdout,
+        "baseline_clean": not baseline_errors,
     }
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -283,6 +332,8 @@ def capture(scenario_name: str, duration: int, warmup: int, rps: float) -> Path:
     print(f"          baseline : {checkout_logs['baseline']['counts']}")
     print(f"          incident : {checkout_logs['incident']['counts']}")
     print(f"          recovery : {checkout_logs['recovery']['counts']}")
+    if baseline_errors:
+        print(f"          ATTENTION : baseline polluée {baseline_errors}")
     return path
 
 
@@ -292,10 +343,15 @@ def main() -> None:
     p.add_argument("--duration", type=int, default=None)
     p.add_argument("--warmup", type=int, default=60)
     p.add_argument("--rps", type=float, default=6.0)
+    p.add_argument(
+        "--holdout",
+        action="store_true",
+        help="réserve cet incident à l'évaluation (jamais utilisé comme graine)",
+    )
     args = p.parse_args()
 
     duration = args.duration or SCENARIOS[args.scenario].get("duration", 180)
-    capture(args.scenario, duration, args.warmup, args.rps)
+    capture(args.scenario, duration, args.warmup, args.rps, args.holdout)
 
 
 if __name__ == "__main__":

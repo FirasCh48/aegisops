@@ -21,3 +21,10 @@ models/
 qdrant_storage/
 sandbox/logs/
 sandbox/.pids/
+data/incidents/*
+!data/**/.gitkeep
+# Les postmortems sont du contenu rédigé, pas des données générées :
+# ils doivent être versionnés.
+!data/incidents/postmortems/
+!data/incidents/postmortems/*.md
+data/campaign.log
