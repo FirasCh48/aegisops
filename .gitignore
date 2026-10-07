@@ -28,3 +28,5 @@ data/incidents/*
 !data/incidents/postmortems/
 !data/incidents/postmortems/*.md
 data/campaign.log
+!data/corpus/sandbox/
+!data/corpus/sandbox/*.md
