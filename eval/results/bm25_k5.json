@@ -1,0 +1,22 @@
+{
+  "config": "BM25 seul",
+  "k": 5,
+  "queries": 16,
+  "recall_at_k": 1.0,
+  "mrr": 0.5844,
+  "mean_rank_when_found": 2.5,
+  "latency_ms_mean": 2.8,
+  "latency_ms_p95": 10.5,
+  "per_scenario": {
+    "bad_release": 1.0,
+    "connection_leak": 1.0,
+    "cpu_saturation": 1.0,
+    "internal_error": 1.0,
+    "memory_leak": 1.0,
+    "slow_response": 1.0
+  },
+  "per_origin": {
+    "incident": 1.0
+  },
+  "misses": []
+}

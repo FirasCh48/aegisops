@@ -1,0 +1,1 @@
+{"query_id": "M-001", "origin": "manual", "scenario": "manual", "holdout": false, "query": "a routing change pushed to production sent traffic to the wrong data centre and took most of the network offline", "relevant_docs": ["PUB-004"]}
