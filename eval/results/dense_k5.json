@@ -1,0 +1,64 @@
+{
+  "config": "dense seul",
+  "k": 5,
+  "queries": 16,
+  "recall_at_k": 0.75,
+  "mrr": 0.6146,
+  "mean_rank_when_found": 1.67,
+  "latency_ms_mean": 98.2,
+  "latency_ms_p95": 252.3,
+  "per_scenario": {
+    "bad_release": 1.0,
+    "connection_leak": 0.667,
+    "cpu_saturation": 0.5,
+    "internal_error": 1.0,
+    "memory_leak": 0.0,
+    "slow_response": 1.0
+  },
+  "misses": [
+    {
+      "query_id": "Q-INC-20261003-194429-connection_leak",
+      "expected": [
+        "sandbox/connection_leak.md"
+      ],
+      "got": [
+        "sandbox/bad_release.md",
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md"
+      ]
+    },
+    {
+      "query_id": "Q-INC-20261003-204336-cpu_saturation",
+      "expected": [
+        "sandbox/cpu_saturation.md"
+      ],
+      "got": [
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md"
+      ]
+    },
+    {
+      "query_id": "Q-INC-20261003-210740-memory_leak",
+      "expected": [
+        "sandbox/memory_leak.md"
+      ],
+      "got": [
+        "sandbox/internal_error.md",
+        "sandbox/bad_release.md",
+        "sandbox/internal_error.md"
+      ]
+    },
+    {
+      "query_id": "Q-INC-20261003-212619-memory_leak",
+      "expected": [
+        "sandbox/memory_leak.md"
+      ],
+      "got": [
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md",
+        "sandbox/cpu_saturation.md"
+      ]
+    }
+  ]
+}

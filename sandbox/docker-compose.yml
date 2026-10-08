@@ -64,3 +64,21 @@ services:
     depends_on:
       - prometheus
       - loki
+
+  # Base vectorielle du RAG. Contrairement aux cinq services ci-dessus,
+  # elle ne fait pas partie du bac à sable observé : c'est une dépendance
+  # du produit. Elle vit ici pour ne pas multiplier les fichiers compose.
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: aegis-qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      # Volume nommé plutôt que bind mount : l'index est entièrement
+      # dérivé de chunks.jsonl et se reconstruit en une minute, mais le
+      # perdre à chaque `docker compose down` serait pénible. `down -v`
+      # l'efface quand on veut repartir de zéro.
+      - qdrant_storage:/qdrant/storage
+
+volumes:
+  qdrant_storage:
