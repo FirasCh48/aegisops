@@ -21,6 +21,7 @@ dependencies = [
     "python-dotenv>=1.2.3",
     "sqlalchemy>=2.0.52",
     "structlog>=26.1.0",
+    "tiktoken>=0.14.0",
     "uvicorn[standard]>=0.52.4",
 ]
 
