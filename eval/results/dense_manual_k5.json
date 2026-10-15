@@ -1,0 +1,73 @@
+{
+  "config": "dense seul",
+  "k": 5,
+  "queries": 10,
+  "recall_at_k": 0.5,
+  "mrr": 0.35,
+  "mean_rank_when_found": 1.6,
+  "latency_ms_mean": 20.2,
+  "latency_ms_p95": 27.0,
+  "per_scenario": {
+    "manual": 0.5
+  },
+  "per_origin": {
+    "manual": 0.5
+  },
+  "misses": [
+    {
+      "query_id": "M-003",
+      "expected": [
+        "PUB-005"
+      ],
+      "got": [
+        "PUB-006",
+        "PUB-020",
+        "PUB-012"
+      ]
+    },
+    {
+      "query_id": "M-006",
+      "expected": [
+        "PUB-011"
+      ],
+      "got": [
+        "sandbox/bad_release.md",
+        "PUB-006",
+        "PUB-042"
+      ]
+    },
+    {
+      "query_id": "M-007",
+      "expected": [
+        "PUB-020"
+      ],
+      "got": [
+        "PUB-030",
+        "PUB-030",
+        "PUB-030"
+      ]
+    },
+    {
+      "query_id": "M-008",
+      "expected": [
+        "PUB-035"
+      ],
+      "got": [
+        "PUB-007",
+        "sandbox/memory_leak.md",
+        "sandbox/slow_response.md"
+      ]
+    },
+    {
+      "query_id": "M-009",
+      "expected": [
+        "PUB-039"
+      ],
+      "got": [
+        "PUB-042",
+        "PUB-026",
+        "PUB-026"
+      ]
+    }
+  ]
+}

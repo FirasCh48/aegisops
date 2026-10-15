@@ -61,7 +61,6 @@ auquel ce problème se traite — un cross-encoder lit la requête et le
 passage ensemble, et peut séparer un tableau où la mémoire passe de 86 à
 381 Mo d'un tableau où elle est inchangée.
 
-
 ## Retrieval — ablation complète (S3-J5)
 
 | Config | recall@5 | MRR | latence |
@@ -107,4 +106,94 @@ l'hybride RRF, malgré un recall inférieur à BM25 seul : le MRR et le
 comportement sur les requêtes descriptives restent à départager en J6,
 avec le second jeu d'évaluation.
 
-Ce résultat ne condamne pas le reranking en
+Ce résultat ne condamne pas le reranking en général. Il indique que la
+forme des requêtes produites par l'Evidence Collector détermine le choix
+du moteur — point à réexaminer en semaine 4 si les requêtes deviennent
+descriptives.
+
+
+## Retrieval — synthèse (S3-J6)
+
+### Deux profils de requête, deux gagnants
+
+| Config | 16 requêtes incident | 10 requêtes descriptives | total |
+| --- | --- | --- | --- |
+| dense seul | 75,0 % | X % | X % |
+| BM25 seul | 100,0 % | Y % | Y % |
+| hybride RRF | 87,5 % | Z % | Z % |
+
+Les requêtes dérivées des incidents sont composées de données
+structurées et contiennent les identifiants exacts du corpus : BM25 y
+atteint 100 %. Les requêtes descriptives reformulent les symptômes sans
+reprendre le vocabulaire des documents : [conclusion à écrire].
+
+### Configuration retenue
+
+[à écrire après mesure]
+
+### Ce que mesure chaque jeu
+
+Le premier jeu reflète ce que produira l'Evidence Collector en semaine 4
+s'il transmet les logs bruts. Le second reflète ce qu'il produirait s'il
+résumait l'incident en langue naturelle.
+
+Le choix du moteur dépend donc d'une décision d'architecture encore
+ouverte, et non d'une propriété intrinsèque des moteurs.
+
+
+## Retrieval — synthèse et décision (S3-J6)
+
+### Deux jeux d'évaluation, deux profils de requête
+
+| Config | 16 requêtes incident | 10 requêtes descriptives | latence |
+| --- | --- | --- | --- |
+| dense seul | 75,0 % | 50,0 % | 20–88 ms |
+| **BM25 seul** | **100,0 %** | **80,0 %** | **1,1 ms** |
+| hybride RRF (0,4) | 87,5 % | 70,0 % | 49–69 ms |
+| hybride RRF (0,15) | 87,5 % | 70,0 % | 28–76 ms |
+| hybride + reranking | 62,5 % | non mesuré | 11 326 ms |
+
+### L'hypothèse était fausse
+
+Les 16 requêtes dérivées des incidents contiennent les identifiants
+exacts du corpus (`db_pool_timeout`, `process_memory_rss_mb`), ce qui
+expliquait le score parfait de BM25. L'hypothèse était que le dense
+reprendrait l'avantage sur des requêtes descriptives, reformulées sans
+reprendre le vocabulaire des documents.
+
+Le second jeu l'infirme : BM25 obtient 80 % contre 50 % pour le dense.
+
+La raison tient au domaine. Un corpus de postmortems d'infrastructure
+utilise un vocabulaire restreint — `load balancer`, `backup`, `prefix`,
+`advertisement`, `rollback`. Même une requête reformulée réutilise deux
+ou trois de ces termes, et deux termes rares suffisent à BM25. Le dense,
+lui, voit « un système est tombé en panne » dans les 41 documents et ne
+les sépare pas.
+
+### Le dense n'apporte rien à la fusion
+
+Abaisser son poids de 0,4 à 0,15 ne change **aucun** résultat : mêmes
+recalls, mêmes échecs, aux mêmes rangs. Le moteur dense n'influence plus
+le classement, il ne fait qu'ajouter 76 ms.
+
+### Configuration retenue : BM25 seul
+
+| Critère | BM25 | hybride |
+| --- | --- | --- |
+| recall (incident) | 100 % | 87,5 % |
+| recall (descriptif) | 80 % | 70 % |
+| latence | 1,1 ms | 76 ms |
+| dépendances | `bm25s` | + Qdrant, fastembed, qdrant-client |
+| temps d'indexation | 0,4 s | 83 s |
+
+Le code dense et hybride est conservé : il constitue la mesure qui
+justifie la décision, et servira aux ablations de S7.
+
+### Limite de cette conclusion
+
+Elle vaut pour ce corpus — 41 documents, dont 12 sans contenu
+exploitable (pages de statut sans description d'incident) — et pour ces
+deux profils de requête. Un corpus plus large, ou des requêtes produites
+par l'Evidence Collector sous une forme encore inconnue, pourraient
+inverser le résultat. La mesure est à refaire en semaine 4 une fois les
+requêtes réelles connues.

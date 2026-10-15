@@ -1,0 +1,40 @@
+{
+  "config": "BM25 seul",
+  "k": 5,
+  "queries": 10,
+  "recall_at_k": 0.8,
+  "mrr": 0.7,
+  "mean_rank_when_found": 1.25,
+  "latency_ms_mean": 1.1,
+  "latency_ms_p95": 3.2,
+  "per_scenario": {
+    "manual": 0.8
+  },
+  "per_origin": {
+    "manual": 0.8
+  },
+  "misses": [
+    {
+      "query_id": "M-002",
+      "expected": [
+        "PUB-002"
+      ],
+      "got": [
+        "PUB-042",
+        "PUB-016",
+        "PUB-042"
+      ]
+    },
+    {
+      "query_id": "M-008",
+      "expected": [
+        "PUB-035"
+      ],
+      "got": [
+        "PUB-013",
+        "sandbox/memory_leak.md",
+        "PUB-014"
+      ]
+    }
+  ]
+}

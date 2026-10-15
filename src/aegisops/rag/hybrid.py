@@ -31,7 +31,7 @@ from aegisops.rag.sparse import SparseIndex
 RRF_K = 60
 
 # Déséquilibre assumé, justifié par la mesure (voir docstring).
-ENGINE_WEIGHTS = {"dense": 0.4, "sparse": 1.0}
+ENGINE_WEIGHTS = {"dense": 0.15, "sparse": 1.0}
 
 # On récupère plus de candidats que nécessaire chez chaque moteur : un
 # document classé 15e par le dense et 3e par BM25 doit pouvoir remonter.
