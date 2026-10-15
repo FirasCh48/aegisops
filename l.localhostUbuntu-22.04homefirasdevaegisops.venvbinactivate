@@ -1,0 +1,655 @@
+
+======================================================================
+PUB-002  CircleCI
+https://discuss.circleci.com/t/incident-report-november-8-2021-jobs-stuck-in-a-not-running-state/41890
+
+Incident Report: November 8, 2021 - Jobs stuck in a "not running" state - Announcements - CircleCI Discuss
+Incident Report: November 8, 2021 - Jobs stuck in a "not running" state
+Announcements
+incident
+,
+post-incident-review
+yannCI
+November 11, 2021,  1:53pm
+1
+Incident Report: November 8, 2021 - Jobs stuck in a “not running” state
+Summary
+Customer jobs were blocked in a “not running” state from approximately 18:50 UTC to 19:43 UTC on Monday, November 8, 2021, due to a database schema change that was not backwards compatible. This affected all executors, with Docker executors recovering first. 
+
+======================================================================
+PUB-003  CircleCI
+https://discuss.circleci.com/t/post-incident-report-april-4-2025-circleci-ui-loading-build-triggering-issues/53208
+
+Post Incident Report: April 4, 2025 - CircleCI UI Loading & build triggering issues - Announcements - CircleCI Discuss
+Post Incident Report: April 4, 2025 - CircleCI UI Loading & build triggering issues
+Announcements
+incident
+,
+post-incident-review
+amitm
+May 2, 2025,  2:20pm
+1
+Summary
+On April 4, 2025, from 00:16 to 01:49 UTC (approximately 1 hour and 33 minutes), CircleCI experienced a service disruption affecting both our user interface and build capabilities. During this time, customers were unable to access the CircleCI UI or initiate new builds. The incident was caused by an inadvertently
+
+======================================================================
+PUB-004  Cloudflare
+https://web.archive.org/web/20211006135542/https://blog.cloudflare.com/todays-outage-post-mortem-82515/
+
+Today's Outage Post Mortem
+Today's Outage Post Mortem
+Loading...
+March 03, 2013 1:47PM
+Matthew Prince
+This morning at 09:47 UTC CloudFlare effectively dropped off the Internet. The outage affected all of CloudFlare's services including DNS and any services that rely on our web proxy. During the outage, anyone accessing CloudFlare.com or any site on CloudFlare's network would have received a DNS error. Pings and Traceroutes to CloudFlare's network resulted in a "No Route to Host" error.
+The cause of the outage was a system-wide failure of our edge routers. CloudFlare currently runs 23 data cent
+
+======================================================================
+PUB-005  Cloudflare
+https://web.archive.org/web/20211016040522/https://blog.cloudflare.com/cloudflare-outage-on-july-17-2020/
+
+Cloudflare outage on July 17, 2020
+Cloudflare outage on July 17, 2020
+Loading...
+July 18, 2020 2:22AM
+John Graham-Cumming
+Today a configuration error in our backbone network caused an outage for Internet properties and Cloudflare services that lasted 27 minutes. We saw traffic drop by about 50% across our network. Because of the architecture of our backbone this outage didn’t affect the entire Cloudflare network and was localized to certain geographies.
+The outage occurred because, while working on an unrelated issue with a segment of the backbone from Newark to Chicago, our network engineerin
+
+======================================================================
+PUB-006  Cloudflare
+https://web.archive.org/web/20220621124002/https://blog.cloudflare.com/cloudflare-outage-on-june-21-2022/
+
+Cloudflare outage on June 21, 2022
+Cloudflare outage on June 21, 2022
+Loading...
+June 21, 2022 1:38PM
+Tom Strickx
+Jeremy Hartman
+Introduction
+Today, June 21, 2022, Cloudflare suffered an outage that affected traffic in 19 of our data centers. Unfortunately, these 19 locations handle a significant proportion of our global traffic. This outage was caused by a change that was part of a long-running project to increase resilience in our busiest locations. A change to the network configuration in those locations caused an outage which started at 06:27 UTC. At 06:58 UTC the first data center was bro
+
+======================================================================
+PUB-007  Cloudflare
+https://web.archive.org/web/20221112015610/https://blog.cloudflare.com/partial-cloudflare-outage-on-october-25-2022/
+
+Partial Cloudflare outage on October 25, 2022
+Partial Cloudflare outage on October 25, 2022
+Loading...
+October 26, 2022 4:02AM
+John Graham-Cumming
+This post is also available in
+简体中文
+,
+日本語
+,
+Français
+,
+Deutsch
+and
+Español
+.
+Today, a change to our Tiered Cache system caused some requests to fail for users with status code 530. The impact lasted for almost six hours in total. We estimate that about 5% of all requests failed at peak. Because of the complexity of our system and a blind spot in our tests, we did not spot this when the change was released to our test environment.
+The failures were c
+
+======================================================================
+PUB-008  Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-on-january-24th-2023/
+
+Cloudflare incident on January 24, 2023 | Cloudflare Blog
+Skip to content
+Several Cloudflare services became unavailable for 121 minutes on January 24, 2023 due to an error releasing code that manages service tokens. The incident degraded a wide range of Cloudflare products including aspects of our Workers platform, our
+Zero Trust solution
+, and control plane functions in our content delivery network (CDN).
+Cloudflare provides a
+service token functionality
+to allow automated services to authenticate to other services. Customers can use service tokens to secure the interaction between an applic
+
+======================================================================
+PUB-009  Cloudflare
+https://blog.cloudflare.com/1-1-1-1-lookup-failures-on-october-4th-2023/
+
+1.1.1.1 lookup failures on  October 4, 2023 | Cloudflare Blog
+Skip to content
+On 4 October 2023, Cloudflare experienced DNS resolution problems starting at 07:00 UTC and ending at 11:00 UTC. Some users of 1.1.1.1 or products like WARP, Zero Trust, or third party DNS resolvers which use 1.1.1.1 may have received SERVFAIL DNS responses to valid queries. We’re very sorry for this outage. This outage was an internal software error and not the result of an attack. In this blog, we’re going to talk about what the failure was, why it occurred, and what we’re doing to make sure this doesn’t happen aga
+
+======================================================================
+PUB-010  Cloudflare
+https://blog.cloudflare.com/18-november-2025-outage/
+
+Cloudflare outage on November 18, 2025 | Cloudflare Blog
+Skip to content
+On 18 November 2025 at 11:20 UTC (all times in this blog are UTC), Cloudflare's network began experiencing significant failures to deliver core network traffic. This showed up to Internet users trying to access our customers' sites as an error page indicating a failure within Cloudflare's network.
+The issue was not caused, directly or indirectly, by a cyber attack or malicious activity of any kind.
+Instead, it was triggered by a change to one of our database systems' permissions which caused the database to output multipl
+
+======================================================================
+PUB-011  Cloudflare
+https://blog.cloudflare.com/5-december-2025-outage/
+
+Cloudflare outage on December 5, 2025 | Cloudflare Blog
+Skip to content
+Note: This post was updated to clarify the relationship of the internal WAF tool with the incident on Dec. 5.
+On December 5, 2025, at 08:47 UTC (all times in this blog are UTC), a portion of Cloudflare’s network began experiencing significant failures. The incident was resolved at 09:12 (~25 minutes total impact), when all services were fully restored.
+A subset of customers were impacted, accounting for approximately 28% of all HTTP traffic served by Cloudflare. Several factors needed to combine for an individual customer 
+
+======================================================================
+PUB-012  Cloudflare
+https://blog.cloudflare.com/cloudflare-outage-february-20-2026/
+
+Cloudflare outage on February 20, 2026 | Cloudflare Blog
+Skip to content
+On February 20, 2026, at 17:48 UTC, Cloudflare experienced a service outage when a subset of customers who use Cloudflare’s Bring Your Own IP (BYOIP) service saw their routes to the Internet withdrawn via Border Gateway Protocol (BGP).
+The issue was not caused, directly or indirectly, by a cyberattack or malicious activity of any kind. This issue was caused by a change that Cloudflare made to how our network manages IP addresses onboarded through the BYOIP pipeline. This change caused Cloudflare to unintentionally withdra
+
+======================================================================
+PUB-013  Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-on-february-6-2025/
+
+Cloudflare incident on February 6, 2025 | Cloudflare Blog
+Skip to content
+Multiple Cloudflare services, including our
+R2 object storage
+, were unavailable for 59 minutes on Thursday, February 6, 2025. This caused all operations against R2 to fail for the duration of the incident, and caused a number of other Cloudflare services that depend on R2 — including
+Stream
+,
+Images
+,
+Cache Reserve
+,
+Vectorize
+and
+Log Delivery
+— to suffer significant failures.
+The incident occurred due to human error and insufficient validation safeguards during a routine abuse remediation for a report about a phishing 
+
+======================================================================
+PUB-014  Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-march-21-2025/
+
+Cloudflare incident on March 21, 2025 | Cloudflare Blog
+Skip to content
+Multiple Cloudflare services, including
+R2 object storage
+, experienced an elevated rate of errors for 1 hour and 7 minutes on March 21, 2025 (starting at 21:38 UTC and ending 22:45 UTC). During the incident window, 100% of write operations failed and approximately 35% of read operations to R2 failed globally. Although this incident started with R2, it impacted other Cloudflare services including
+Cache Reserve
+,
+Images
+,
+Log Delivery
+,
+Stream
+, and
+Vectorize
+.
+While rotating credentials used by the R2 Gateway service (R2's
+
+======================================================================
+PUB-015  Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-on-june-20-2024/
+
+Cloudflare incident on June 20, 2024 | Cloudflare Blog
+Skip to content
+On Thursday, June 20, 2024, two independent events caused an increase in latency and error rates for Internet properties and Cloudflare services that lasted 114 minutes. During the 30-minute peak of the impact, we saw that 1.4 - 2.1% of HTTP requests to our CDN received a generic error page, and observed a 3x increase for the 99th percentile Time To First Byte (TTFB) latency.
+These events occurred because:
+Automated network monitoring
+detected performance degradation, re-routing traffic suboptimally and
+causing backbone con
+
+======================================================================
+PUB-016  Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-on-october-30-2023/
+
+Cloudflare incident on October 30, 2023 | Cloudflare Blog
+Skip to content
+Multiple Cloudflare services were unavailable for 37 minutes on October 30, 2023. This was due to the misconfiguration of a deployment tool used by Workers KV. This was a frustrating incident, made more difficult by Cloudflare’s reliance on our own suite of products. We are deeply sorry for the impact it had on customers. What follows is a discussion of what went wrong, how the incident was resolved, and the work we are undertaking to ensure it does not happen again.
+Workers KV is our globally distributed key-value store
+
+======================================================================
+PUB-017  Cloudflare
+https://blog.cloudflare.com/deep-dive-into-cloudflares-sept-12-dashboard-and-api-outage/
+
+A deep dive into Cloudflare’s September 12, 2025 dashboard and API outage | Cloudflare Blog
+Skip to content
+What Happened
+We had an outage in our Tenant Service API which led to a broad outage of many of our APIs and the Cloudflare Dashboard.
+The incident’s impact stemmed from several issues, but the immediate trigger was a bug in the dashboard. This bug caused repeated, unnecessary calls to the Tenant Service API. The API calls were managed by a React useEffect hook, but we mistakenly included a problematic object in its dependency array. Because this object was recreated on every state or pr
+
+======================================================================
+PUB-018  Cloudflare
+https://blog.cloudflare.com/route-leak-incident-january-22-2026/
+
+Route leak incident on January 22, 2026 | Cloudflare Blog
+Skip to content
+On January 22, 2026, an automated routing policy configuration error caused us to leak some
+Border Gateway Protocol (BGP)
+prefixes unintentionally from a router at our data center in Miami, Florida. While the route leak caused some impact to Cloudflare customers, multiple external parties were also affected because their traffic was accidentally funnelled through our Miami data center location.
+The route leak lasted 25 minutes, causing congestion on some of our backbone infrastructure in Miami, elevated loss for some Clo
+
+======================================================================
+PUB-020  Facebook
+https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/
+
+More details about the October 4 outage - Engineering at Meta
+Skip to content
+By
+Santosh Janardhan
+Now that our platforms are up and running as usual after yesterday’s outage, I thought it would be worth sharing a little more detail on what happened and why — and most importantly, how we’re learning from it.
+This outage was triggered by the system that manages our global backbone network capacity. The backbone is the network Facebook has built to connect all our computing facilities together, which consists of tens of thousands of miles of fiber-optic cables crossing the globe and linking all 
+
+======================================================================
+PUB-022  Firefox
+https://web.archive.org/web/20250314111052/https://hacks.mozilla.org/2022/02/retrospective-and-technical-details-on-the-recent-firefox-outage/
+
+Retrospective and Technical Details on the recent Firefox Outage - Mozilla Hacks - the Web developer blog
+Retrospective and Technical Details on the recent Firefox Outage
+By
+Christian Holler
+Posted on
+February 2, 2022
+in
+Featured Article
+,
+Firefox
+,  and
+Firefox OS
+On January 13th 2022, Firefox became unusable for close to two hours for users worldwide. This incident interrupted many people’s workflow. This post highlights the complex series of events and circumstances that, together, triggered a bug deep in the networking code of Firefox.
+What Happened?
+Firefox has a number of servers and rel
+
+======================================================================
+PUB-023  GitHub
+https://github.blog/news-insights/the-library/dns-outage-post-mortem/
+
+DNS Outage Post Mortem - The GitHub Blog
+James Fryman
+·
+@jfryman
+January 18, 2014
+|
+Updated January 4, 2019
+|
+7 minutes
+Share:
+Last week on Wednesday, January 8th, GitHub experienced an outage of our DNS infrastructure. As a result of this outage, our customers experienced 42 minutes of downtime of services along with an additional 1 hour and 35 minutes of downtime within a subset of repositories as we worked to restore full service. I would like apologize to our customers for the impact to your daily operations as a result of this outage. Unplanned downtime of any length is unacceptable to us
+
+======================================================================
+PUB-024  GoCardless
+https://gocardless.com/blog/incident-review-api-and-dashboard-outage-on-10th-october/
+
+Incident review: API and Dashboard outage on 10 October 2017 | GoCardless
+Skip to content
+New
+Stop accepting high card fees and failure rates. Accept Pay by Bank.
+Learn more
+Global payments
+One-off payments
+Collect one-off or invoice payments instantly
+Subscription and memberships
+Automate recurring billing
+Instalments
+Split total cost into manageable payments
+Outbound payments
+Send payments instantly
+Connect
+350+ integrations
+Sync with Xero, QuickBooks, Zuora and more
+API integrations
+Build custom integrations
+Add-ons
+Success+
+Automatically recover failed payments
+Protect+
+Advanced fraud prot
+
+======================================================================
+PUB-025  Google
+https://cloud.google.com/blog/products/infrastructure/details-of-google-cloud-gcve-incident
+
+Details of Google Cloud GCVE incident | Google Cloud Blog
+Infrastructure
+Sharing details on a recent incident impacting one of our customers
+May 24, 2024
+Google Cloud Customer Support
+A Google Cloud incident earlier this month impacted our customer, UniSuper, in Australia. While our first priority was to work with our customer to get them fully operational, soon after the incident started, we publicly acknowledged the incident in a joint statement with the customer.
+With our customer’s systems fully up and running, we have completed our internal review. We are sharing information publicly to c
+
+======================================================================
+PUB-026  Google
+https://status.cloud.google.com/incident/compute/16007
+
+Google Cloud Status Dashboard
+February 03, 2018
+All services available
+Google Cloud Status Dashboard
+Incidents
+Google Compute Engine
+Google Cloud Status Dashboard
+This page provides status information on the services that are part of Google Cloud Platform.
+Check back here to view the current status of the services listed below. If you are experiencing an
+issue not listed here, please
+contact Support
+.
+Learn more about what's posted on the dashboard in
+this FAQ
+. For additional information on these services, please visit
+cloud.google.com
+.
+Google Compute Engine Incident #16007
+Connectivity issu
+
+======================================================================
+PUB-027  Google
+https://googleblog.blogspot.com/2014/01/todays-outage-for-several-google.html
+
+Today’s outage for several Google services
+Today’s outage for several Google services
+Jan 24, 2014
+|
+x.com
+Facebook
+LinkedIn
+Mail
+Copy link
+Ben Treynor
+VP, Engineering
+Share
+x.com
+Facebook
+LinkedIn
+Mail
+Copy link
+Earlier today, most Google users who use logged-in services like Gmail, Google+, Calendar and Documents found they were unable to access those services for approximately 25 minutes. For about 10 percent of users, the problem persisted for as much as 30 minutes longer. Whether the effect was brief or lasted the better part of an hour, please accept our apologies—we strive to make all o
+
+======================================================================
+PUB-028  Google
+https://status.cloud.google.com/incident/compute/17007#5659118702428160
+
+Google Cloud Status Dashboard
+April 13, 2018
+All services available
+Google Cloud Status Dashboard
+Incidents
+Google Compute Engine
+Google Cloud Status Dashboard
+This page provides status information on the services that are part of Google Cloud Platform.
+Check back here to view the current status of the services listed below. If you are experiencing an
+issue not listed here, please
+contact Support
+.
+Learn more about what's posted on the dashboard in
+this FAQ
+. For additional information on these services, please visit
+cloud.google.com
+.
+Google Compute Engine Incident #17007
+502 errors for HTTP(
+
+======================================================================
+PUB-029  Google
+https://status.cloud.google.com/incident/storage/19002
+
+Google Cloud Status Dashboard
+March 13, 2020
+All services available
+Google Cloud Status Dashboard
+Incidents
+Google Cloud Storage
+Google Cloud Status Dashboard
+This page provides status information on the services that are part of Google Cloud Platform.
+Check back here to view the current status of the services listed below. If you are experiencing an
+issue not listed here, please
+contact Support
+.
+Learn more about what's posted on the dashboard in
+this FAQ
+. For additional information on these services, please visit
+cloud.google.com
+.
+Google Cloud Storage Incident #19002
+Elevated error rate wi
+
+======================================================================
+PUB-030  Google
+https://status.cloud.google.com/incident/cloud-networking/19009
+
+Google Cloud Status Dashboard
+June 05, 2020
+All services available
+Google Cloud Status Dashboard
+Incidents
+Google Cloud Networking
+Google Cloud Status Dashboard
+This page provides status information on the services that are part of Google Cloud Platform.
+Check back here to view the current status of the services listed below. If you are experiencing an
+issue not listed here, please
+contact Support
+.
+Learn more about what's posted on the dashboard in
+this FAQ
+. For additional information on these services, please visit
+cloud.google.com
+.
+Google Cloud Networking Incident #19009
+The network conge
+
+======================================================================
+PUB-031  Google
+https://status.cloud.google.com/incidents/1xkAB1KmLrh5g3v9ZEZ7
+
+Incident details | Google Cloud Service Health
+Google Cloud Service Health
+Incidents
+We are experiencing Networking issues
+Service Health
+This page provides status information on the services that are part of Google Cloud. Check back here to view the current status of the services listed below. If you are experiencing an issue not listed here, please
+contact Support
+. Learn more about what's posted on the dashboard in
+this FAQ
+. For additional information on these services, please visit
+https://cloud.google.com/
+.
+For incidents related to Google Security Products, visit
+https://status.cloud.go
+
+======================================================================
+PUB-032  Google
+https://status.cloud.google.com/incidents/6PM5mNd43NbMqjCZ5REh
+
+Incident details | Google Cloud Service Health
+Google Cloud Service Health
+Incidents
+Global: Experiencing Issue with Cloud networking
+Service Health
+This page provides status information on the services that are part of Google Cloud. Check back here to view the current status of the services listed below. If you are experiencing an issue not listed here, please
+contact Support
+. Learn more about what's posted on the dashboard in
+this FAQ
+. For additional information on these services, please visit
+https://cloud.google.com/
+.
+For incidents related to Google Security Products, visit
+https://stat
+
+======================================================================
+PUB-033  Google
+https://status.cloud.google.com/incidents/vLsxuKoRvykNHW3nnhsJ
+
+Incident details | Google Cloud Service Health
+Google Cloud Service Health
+Incidents
+Google Cloud Storage is experiencing elevated latency in multiple regions.
+Service Health
+This page provides status information on the services that are part of Google Cloud. Check back here to view the current status of the services listed below. If you are experiencing an issue not listed here, please
+contact Support
+. Learn more about what's posted on the dashboard in
+this FAQ
+. For additional information on these services, please visit
+https://cloud.google.com/
+.
+For incidents related to Google Security Pr
+
+======================================================================
+PUB-035  NPM
+https://blog.npmjs.org/post/74949623024/2014-01-28-outage-postmortem.html
+
+npm Blog Archive: 2014-01-28 Outage Postmortem
+The npm blog has been discontinued.
+Updates from the npm team are now published on the
+GitHub Blog
+and
+the
+GitHub
+Changelog
+.
+2014-01-28 Outage Postmortem
+While making a change to simplify the Varnish VCL config on Fastly, we added a bug that caused
+all
+requests to go to Manta, including those that should have gone to CouchDB.
+Since Manta doesn’t know how to handle requests like
+/pkgname
+, these all returned
+403 Forbidden
+responses.
+Because Fastly is configured to not cache error codes, this proliferation of 403 responses led to a thundering herd 
+
+======================================================================
+PUB-039  Stack Overflow
+https://web.archive.org/web/20201020103424/https://stackstatus.net/post/96025967369/outage-post-mortem-august-25th-2014
+
+Stack Exchange Network Status — Outage Post-Mortem: August 25th, 2014
+Outage Post-Mortem: August 25th, 2014
+On August 25, 2014 there was an outage of all Stack Exchange sites (Q&A sites as well as Careers) from 7:26 pm to 7:32 pm UTC (approximately 6 minutes). The cause was an incorrect change to network firewall configuration - specifically, iptables running on our HAProxy load balancers.
+While attempting to make a change enabling streamlined access for our web servers to internal API endpoints (connecting directly instead of traversing our ASA firewalls), a misleading comment in the iptables
+
+======================================================================
+PUB-041  TravisCI
+https://www.traviscistatus.com/incidents/khzk8bg4p9sy
+
+Travis CI Status - High queue times on OSX builds (.com and .org)
+High queue times on OSX builds (.com and .org)
+Incident
+Report for
+Travis CI
+Postmortem
+On Tuesday, August 4th we had a significant period of instability and outage to our OS X build environment for both open source and private repositories. We want to take the time to explain what happened. We recognize that this was a significant disruption to the workflow and productivity of all of our users who rely on us for OS X building and testing. This is not at all acceptable to us. We are very sorry that it happened and our entire Eng
+
+======================================================================
+PUB-042  TravisCI
+https://www.traviscistatus.com/incidents/sxrh0l46czqn
+
+Travis CI Status - Container-based Linux Precise infrastructure emergency maintenance
+Container-based Linux Precise infrastructure emergency maintenance
+Incident
+Report for
+Travis CI
+Postmortem
+We strive to provide the most stable and user-friendly CI platform
+possible so that you and your teams can focus on shipping amazing open source and commercial software. When any portion of our service is unavailable, we know it can bring your productivity to a screeching halt. As developers building a tool for other developers, we understand firsthand how frustrating and debilitating this can be.
+We wa
+
+======================================================================
+PUB-043  TravisCI
+https://www.traviscistatus.com/incidents/z2b3lz2kwcfp
+
+Travis CI Status - Major outage on travis-ci.com
+Major outage on travis-ci.com
+Incident
+Report for
+Travis CI
+Postmortem
+On Tuesday, 13 March 2018,
+travis-ci.com was non-operational
+for around 5.5 hours starting at 12:14 UTC. There was a backlog of builds for another 3.5 hours after the system returned to an operational state.
+This post outlines what happened, and explains what exactly it means for you as a travis-ci.com customer.
+What happened
+On Tuesday, 13 March 2018 at 12:04 UTC a database query was accidentally run against our production database which truncated all tables. The query was b
+
+======================================================================
+PUB-044  Turso
+https://blog.turso.tech/incident-2023-12-04-data-leak-and-loss-in-some-free-tier-databases-7cba5bc7
+
+Incident 2023-12-04: Data leak and loss in some free tier databases
+Turso is joining Supabase to give every agent its own database
+Read the news →
+Dec 5, 2023
+Incident 2023-12-04: Data leak and loss in some free tier databases
+Data leak and loss in some free tier databases on 2023-12-04
+Glauber Costa
+#
+What happened?
+0.07% of databases under management were incorrectly configured with an empty backup identifier, which caused a data leak. The conservative fix we applied to the leak, lead to the possible loss of the most recent data in those databases.
+A change that made possible for the empty b
+
+======================================================================
+PUB-046  Cloudflare
+https://web.archive.org/web/20211015231917/https://blog.cloudflare.com/a-byzantine-failure-in-the-real-world/
+
+A Byzantine failure in the real world
+A Byzantine failure in the real world
+Loading...
+November 27, 2020 12:00PM
+Tom Lianza
+Chris Snook
+An analysis of the Cloudflare API availability incident on 2020-11-02
+When we review design documents at Cloudflare, we are always on the lookout for Single Points of Failure (SPOFs). Eliminating these is a necessary step in architecting a system you can be confident in. Ironically, when you’re designing a system with built-in redundancy, you spend most of your time thinking about how well it functions when that redundancy is lost.
+On November 2, 2020, Cloudfl
+
+======================================================================
+PUB-047  Cloudflare
+https://blog.cloudflare.com/post-mortem-on-cloudflare-control-plane-and-analytics-outage/
+
+Post mortem on the Cloudflare Control Plane and Analytics Outage | Cloudflare Blog
+Skip to content
+Beginning on Thursday, November 2, 2023, at 11:43 UTC Cloudflare's control plane and analytics services experienced an outage. The control plane of Cloudflare consists primarily of the customer-facing interface for all of our services including our website and APIs. Our analytics services include logging and analytics reporting.
+The incident lasted from November 2 at 11:44 UTC until November 4 at 04:25 UTC. We were able to restore most of our control plane at our disaster recovery facility as of 
+
+======================================================================
+PUB-048  Cloudflare
+https://blog.cloudflare.com/major-data-center-power-failure-again-cloudflare-code-orange-tested/
+
+Major data center power failure (again): Cloudflare Code Orange tested | Cloudflare Blog
+Skip to content
+Here's a post we never thought we'd need to write: less than five months after one of our major data centers lost power, it happened again to the exact same data center. That sucks and, if you're thinking "why do they keep using this facility??," I don't blame you. We're thinking the same thing. But, here's the thing, while a lot may not have changed at the data center, a lot changed over those five months at Cloudflare. So, while five months ago a major data center going offline was really
+
+======================================================================
+PUB-049  GitHub
+https://github.com/blog/2106-january-28th-incident-report
+
+January 28th Incident Report - The GitHub Blog
+Scott Sanders
+·
+@jssjr
+February 3, 2016
+|
+Updated January 4, 2019
+|
+7 minutes
+Share:
+Last week GitHub
+was unavailable
+for two hours and six minutes. We understand how much you rely on GitHub and consider the availability of our service one of the core features we offer. Over the last eight years we have made considerable progress towards ensuring that you can depend on GitHub to be there for you and for developers worldwide, but a week ago we failed to maintain the level of uptime you rightfully expect. We are deeply sorry for this, and would like
+
+======================================================================
+PUB-050  Google
+https://status.cloud.google.com/incident/compute/15056#5719570367119360
+
+Google Cloud Status Dashboard
+February 03, 2018
+All services available
+Google Cloud Status Dashboard
+Incidents
+Google Compute Engine
+Google Cloud Status Dashboard
+This page provides status information on the services that are part of Google Cloud Platform.
+Check back here to view the current status of the services listed below. If you are experiencing an
+issue not listed here, please
+contact Support
+.
+Learn more about what's posted on the dashboard in
+this FAQ
+. For additional information on these services, please visit
+cloud.google.com
+.
+Google Compute Engine Incident #15056
+Google Compute En

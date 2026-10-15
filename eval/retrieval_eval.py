@@ -9,7 +9,7 @@ Deux jeux complémentaires :
   (`db_pool_timeout`, `process_memory_rss_mb`). La tâche est donc
   lexicale avant d'être sémantique.
 
-- `manual_queries.jsonl` (J4) : requêtes rédigées à la main sur le corpus
+- `manual_queries.jsonl` : requêtes rédigées à la main sur le corpus
   public, en décrivant les symptômes avec d'autres mots que le document.
   Elles mesurent ce que le premier jeu ne peut pas : retrouver un
   document sans correspondance de termes.
@@ -18,7 +18,7 @@ Les deux ensemble évitent de conclure sur un seul profil de requête.
 
 Usage:
     uv run python eval/retrieval_eval.py
-    uv run python eval/retrieval_eval.py --config dense
+    uv run python eval/retrieval_eval.py --config reranked
     uv run python eval/retrieval_eval.py --only manual --k 10
 """
 from __future__ import annotations
@@ -90,7 +90,7 @@ def evaluate(search_fn, queries: list[dict], k: int, label: str) -> dict:
     recall = hits / len(queries)
     # MRR : à recall égal, un système qui place le bon document en
     # première position vaut mieux qu'un système qui le place en
-    # cinquième. Le reranker de J5 se juge surtout là-dessus.
+    # cinquième.
     mrr = sum(1 / r for r in ranks) / len(queries) if ranks else 0.0
     sorted_lat = sorted(latencies)
     p95_idx = min(int(len(sorted_lat) * 0.95), len(sorted_lat) - 1)
@@ -145,42 +145,44 @@ def compare(results: list[dict]) -> None:
 
     Le recall global masque les compensations : une configuration peut
     gagner sur un scénario et perdre sur un autre à somme nulle. Le détail
-    est ce qui dit si un ajout apporte vraiment quelque chose.
+    est ce qui dit si un ajout apporte vraiment quelque chose — et, le cas
+    échéant, à quel prix en latence.
     """
     print(f"\n=== comparatif (k={results[0]['k']}) ===\n")
-    print(f"  {'config':<16} {'recall':>8} {'MRR':>8} {'latence':>11}")
+    print(f"  {'config':<18} {'recall':>8} {'MRR':>8} {'latence':>11}")
     for r in results:
-        print(f"  {r['config']:<16} {r['recall_at_k']:>7.1%} "
+        print(f"  {r['config']:<18} {r['recall_at_k']:>7.1%} "
               f"{r['mrr']:>8.4f} {r['latency_ms_mean']:>8.0f} ms")
 
     origins = sorted({o for r in results for o in r["per_origin"]})
     if len(origins) > 1:
         print(f"\n  {'type de requête':<18}", end="")
         for r in results:
-            print(f"{r['config'][:12]:>14}", end="")
+            print(f"{r['config'][:13]:>15}", end="")
         print()
         for origin in origins:
             print(f"  {origin:<18}", end="")
             for r in results:
-                print(f"{r['per_origin'].get(origin, 0):>13.0%} ", end="")
+                print(f"{r['per_origin'].get(origin, 0):>14.0%} ", end="")
             print()
 
     scenarios = sorted({s for r in results for s in r["per_scenario"]})
     print(f"\n  {'scénario':<18}", end="")
     for r in results:
-        print(f"{r['config'][:12]:>14}", end="")
+        print(f"{r['config'][:13]:>15}", end="")
     print()
     for scenario in scenarios:
         print(f"  {scenario:<18}", end="")
         for r in results:
-            print(f"{r['per_scenario'].get(scenario, 0):>13.0%} ", end="")
+            print(f"{r['per_scenario'].get(scenario, 0):>14.0%} ", end="")
         print()
 
 
 def build_configs(selected: str) -> dict:
     """Les imports sont faits ici plutôt qu'en tête de fichier : charger
-    DenseIndex instancie le modèle d'embedding, ce qui prend plusieurs
-    secondes même quand on ne mesure que BM25."""
+    DenseIndex instancie le modèle d'embedding et RerankedIndex charge un
+    cross-encoder de 296 Mo, ce qui prend plusieurs secondes même quand on
+    ne mesure qu'une seule configuration."""
     configs = {}
 
     if selected in ("dense", "all"):
@@ -197,8 +199,15 @@ def build_configs(selected: str) -> dict:
         from aegisops.rag.hybrid import HybridIndex
         hybrid = HybridIndex()
         weights = "/".join(f"{k}:{v}" for k, v in hybrid.weights.items())
-        configs[f"hybride RRF"] = hybrid.search
+        configs["hybride RRF"] = hybrid.search
         print(f"  poids de fusion : {weights}")
+
+    if selected in ("reranked", "all"):
+        from aegisops.rag.reranker import RerankedIndex
+        reranked = RerankedIndex()
+        configs["hybride+rerank"] = reranked.search
+        print(f"  reranker : {reranked.reranker.path.name}, "
+              f"{reranked.candidates} candidats")
 
     return configs
 
@@ -206,7 +215,8 @@ def build_configs(selected: str) -> dict:
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--k", type=int, default=5)
-    p.add_argument("--config", choices=["dense", "sparse", "hybrid", "all"],
+    p.add_argument("--config",
+                   choices=["dense", "sparse", "hybrid", "reranked", "all"],
                    default="all")
     p.add_argument("--only", choices=["incident", "manual", "all"],
                    default="all", help="quel jeu de requêtes évaluer")
@@ -219,6 +229,11 @@ def main() -> None:
     print(f"  total : {len(queries)}\n")
 
     configs = build_configs(args.config)
+    if args.config == "all":
+        est = len(queries) * 8 / 60
+        print(f"\n  (la configuration avec reranking ajoute environ "
+              f"{est:.0f} min)")
+
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     results = []
@@ -226,7 +241,7 @@ def main() -> None:
         result = evaluate(fn, queries, args.k, label)
         report(result)
         results.append(result)
-        slug = label.split()[0].lower()
+        slug = label.split()[0].lower().replace("+", "_")
         suffix = "" if args.only == "all" else f"_{args.only}"
         (RESULTS_DIR / f"{slug}{suffix}_k{args.k}.json").write_text(
             json.dumps(result, indent=2, ensure_ascii=False)

@@ -1,0 +1,89 @@
+{
+  "config": "hybride+rerank",
+  "k": 5,
+  "queries": 16,
+  "recall_at_k": 0.625,
+  "mrr": 0.5125,
+  "mean_rank_when_found": 1.6,
+  "latency_ms_mean": 11325.8,
+  "latency_ms_p95": 17362.9,
+  "per_scenario": {
+    "bad_release": 0.333,
+    "connection_leak": 0.667,
+    "cpu_saturation": 0.5,
+    "internal_error": 1.0,
+    "memory_leak": 0.0,
+    "slow_response": 1.0
+  },
+  "per_origin": {
+    "incident": 0.625
+  },
+  "misses": [
+    {
+      "query_id": "Q-INC-20261003-194922-connection_leak",
+      "expected": [
+        "sandbox/connection_leak.md"
+      ],
+      "got": [
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md"
+      ]
+    },
+    {
+      "query_id": "Q-INC-20261003-200924-bad_release",
+      "expected": [
+        "sandbox/bad_release.md"
+      ],
+      "got": [
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md"
+      ]
+    },
+    {
+      "query_id": "Q-INC-20261003-202011-bad_release",
+      "expected": [
+        "sandbox/bad_release.md"
+      ],
+      "got": [
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md"
+      ]
+    },
+    {
+      "query_id": "Q-INC-20261003-204336-cpu_saturation",
+      "expected": [
+        "sandbox/cpu_saturation.md"
+      ],
+      "got": [
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md"
+      ]
+    },
+    {
+      "query_id": "Q-INC-20261003-210740-memory_leak",
+      "expected": [
+        "sandbox/memory_leak.md"
+      ],
+      "got": [
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md"
+      ]
+    },
+    {
+      "query_id": "Q-INC-20261003-212619-memory_leak",
+      "expected": [
+        "sandbox/memory_leak.md"
+      ],
+      "got": [
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md",
+        "sandbox/internal_error.md"
+      ]
+    }
+  ]
+}

@@ -17,6 +17,7 @@ dependencies = [
     "groq>=1.7.0",
     "httpx>=0.28.1",
     "markdownify>=1.2.3",
+    "optimum[onnxruntime]>=2.1.0",
     "prometheus-fastapi-instrumentator>=8.1.0",
     "psutil>=7.2.2",
     "pydantic-settings>=2.15.0",
