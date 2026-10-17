@@ -1,0 +1,136 @@
+"""État partagé du graphe d'investigation.
+
+Un TypedDict plutôt qu'un modèle Pydantic : LangGraph fusionne les
+dictionnaires renvoyés par chaque nœud dans l'état courant, et un
+TypedDict se prête à cette fusion partielle — un nœud renvoie
+`{"window": ...}` sans avoir à reconstruire l'objet entier.
+
+Les structures portées *dans* l'état, elles, sont des modèles Pydantic :
+c'est là que la validation compte, parce que ce sont elles qu'un LLM
+produira à partir de S5.
+"""
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Annotated, Literal, TypedDict
+
+from pydantic import BaseModel, Field
+
+
+class Alert(BaseModel):
+    """Point d'entrée du graphe : ce qu'un système de supervision émet."""
+
+    service: str
+    summary: str
+    fired_at: datetime
+    # L'alerte ne porte aucune hypothèse sur la cause. C'est au graphe de
+    # la construire — lui en fournir une orienterait l'investigation.
+    labels: dict[str, str] = Field(default_factory=dict)
+
+
+class TimeWindow(BaseModel):
+    """Fenêtre d'analyse, délimitée par le Detector en J2.
+
+    C'est le livrable le plus important des premiers nœuds : il détermine
+    quelles données les agents suivants vont lire. Une fenêtre trop large
+    noie le signal, une fenêtre trop étroite rate les pannes lentes.
+    """
+
+    start: datetime
+    end: datetime
+    # La durée conditionne ce qui est détectable : une fuite mémoire
+    # demande dix minutes, une dépendance lente se voit en trente
+    # secondes (mesuré en S2-J3).
+    reason: str = ""
+
+    @property
+    def duration_s(self) -> float:
+        return (self.end - self.start).total_seconds()
+
+
+class MetricObservation(BaseModel):
+    """Une anomalie métrique constatée, pas interprétée."""
+
+    metric: str
+    labels: dict[str, str] = Field(default_factory=dict)
+    baseline: float | None = None
+    peak: float | None = None
+    ratio: float | None = None
+    anomalous: bool = False
+    note: str = ""
+
+
+class LogObservation(BaseModel):
+    """Un motif de log constaté sur la fenêtre."""
+
+    service: str
+    event: str
+    count: int
+    phase: Literal["baseline", "incident", "recovery"] = "incident"
+    sample: dict = Field(default_factory=dict)
+
+
+class RetrievedPassage(BaseModel):
+    """Un passage du corpus, rapporté avec sa source."""
+
+    chunk_id: str
+    doc_id: str
+    score: float
+    text: str
+    origin: str = ""
+
+
+class IncidentContext(BaseModel):
+    """Livrable de la semaine 4 : tout ce qu'un analyste aurait rassemblé.
+
+    Volontairement dépourvu de conclusion. L'hypothèse de cause racine
+    est produite en S5, par un nœud distinct, à partir de cet objet — la
+    séparation garantit que le raisonnement ne puisse s'appuyer que sur
+    des éléments collectés et traçables.
+    """
+
+    alert: Alert
+    window: TimeWindow
+    metrics: list[MetricObservation] = Field(default_factory=list)
+    logs: list[LogObservation] = Field(default_factory=list)
+    search_query: str = ""
+    passages: list[RetrievedPassage] = Field(default_factory=list)
+
+    def summary(self) -> str:
+        anomalies = [m for m in self.metrics if m.anomalous]
+        return (
+            f"{self.alert.service} · fenêtre {self.window.duration_s:.0f}s · "
+            f"{len(anomalies)}/{len(self.metrics)} métriques anormales · "
+            f"{len(self.logs)} motifs de logs · "
+            f"{len(self.passages)} passages"
+        )
+
+
+def append(left: list, right: list) -> list:
+    """Réducteur pour les champs que plusieurs nœuds alimentent.
+
+    Sans lui, le second nœud à écrire dans `trace` écraserait ce qu'y a
+    mis le premier : LangGraph remplace par défaut.
+    """
+    return (left or []) + (right or [])
+
+
+class IncidentState(TypedDict, total=False):
+    """État partagé, traversé par tous les nœuds.
+
+    `total=False` : chaque nœud ne renseigne que les champs qu'il produit.
+    """
+
+    alert: Alert
+    window: TimeWindow
+    metrics: list[MetricObservation]
+    logs: list[LogObservation]
+    search_query: str
+    passages: list[RetrievedPassage]
+    context: IncidentContext
+
+    # Journal d'exécution. Accumulé plutôt que remplacé : c'est ce qui
+    # permettra de lire une investigation a posteriori, et de mesurer la
+    # latence par nœud en J6.
+    trace: Annotated[list[dict], append]
+    errors: Annotated[list[str], append]
