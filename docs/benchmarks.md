@@ -1,15 +1,18 @@
 # Benchmarks
+
 ## Providers configurés (sept. 2026)
 
-| Provider | Modèle | Usage |
-| --- | --- | --- |
-| local (Ollama) | qwen2.5:1.5b / 3b instruct Q4_K_M | benchmarks finaux, démo du modèle fine-tuné |
-| groq | openai/gpt-oss-120b | développement, génération du dataset, juge RAGAS |
-| gemini | gemini-3.6-flash | second juge, génération de variantes |
+| Provider       | Modèle                            | Usage                                            |
+| -------------- | --------------------------------- | ------------------------------------------------ |
+| local (Ollama) | qwen2.5:1.5b / 3b instruct Q4_K_M | benchmarks finaux, démo du modèle fine-tuné      |
+| groq           | openai/gpt-oss-120b               | développement, génération du dataset, juge RAGAS |
+| gemini         | gemini-3.6-flash                  | second juge, génération de variantes             |
 
 Les noms de modèles changent régulièrement côté fournisseurs. Ils sont
 donc lus depuis `.env` et jamais codés en dur.
+
 ## Matériel
+
 Intel i5-10210U (4c/8t) · 20 Go RAM (WSL2 plafonné à 14 Go) · NVIDIA MX130 2 Go (inutilisée)
 
 ## Inférence locale (Ollama, quantization Q4_K_M)
@@ -19,18 +22,17 @@ Prompt : alerte SRE réaliste · num_predict=200 · temperature=0.1
 <colli il tableau eli tal3 mil script>
 
 ## Conséquence
+
 Le développement se fait via Groq. L'inférence locale est réservée
 aux benchmarks finaux et à la démonstration du modèle fine-tuné.# Benchmarks
 
-
-
 ## Retrieval — dense, lexical et fusion (S3-J4)
 
-| Config | recall@5 | MRR | latence |
-| --- | --- | --- | --- |
-| dense seul | 75,0 % | 0,615 | 88 ms |
-| BM25 seul | **100,0 %** | 0,584 | **3 ms** |
-| hybride RRF (0,4 / 1,0) | 87,5 % | 0,558 | 131 ms |
+| Config                  | recall@5    | MRR   | latence  |
+| ----------------------- | ----------- | ----- | -------- |
+| dense seul              | 75,0 %      | 0,615 | 88 ms    |
+| BM25 seul               | **100,0 %** | 0,584 | **3 ms** |
+| hybride RRF (0,4 / 1,0) | 87,5 %      | 0,558 | 131 ms   |
 
 ### Pourquoi BM25 domine
 
@@ -63,12 +65,12 @@ passage ensemble, et peut séparer un tableau où la mémoire passe de 86 à
 
 ## Retrieval — ablation complète (S3-J5)
 
-| Config | recall@5 | MRR | latence |
-| --- | --- | --- | --- |
-| dense seul | 75,0 % | 0,615 | 52 ms |
-| **BM25 seul** | **100,0 %** | 0,584 | **1,2 ms** |
-| hybride RRF (0,4 / 1,0) | 87,5 % | 0,558 | 69 ms |
-| hybride + reranking int8 | 62,5 % | 0,513 | 11 326 ms |
+| Config                   | recall@5    | MRR   | latence    |
+| ------------------------ | ----------- | ----- | ---------- |
+| dense seul               | 75,0 %      | 0,615 | 52 ms      |
+| **BM25 seul**            | **100,0 %** | 0,584 | **1,2 ms** |
+| hybride RRF (0,4 / 1,0)  | 87,5 %      | 0,558 | 69 ms      |
+| hybride + reranking int8 | 62,5 %      | 0,513 | 11 326 ms  |
 
 ### Le reranking dégrade le résultat
 
@@ -111,16 +113,15 @@ forme des requêtes produites par l'Evidence Collector détermine le choix
 du moteur — point à réexaminer en semaine 4 si les requêtes deviennent
 descriptives.
 
-
 ## Retrieval — synthèse (S3-J6)
 
 ### Deux profils de requête, deux gagnants
 
-| Config | 16 requêtes incident | 10 requêtes descriptives | total |
-| --- | --- | --- | --- |
-| dense seul | 75,0 % | X % | X % |
-| BM25 seul | 100,0 % | Y % | Y % |
-| hybride RRF | 87,5 % | Z % | Z % |
+| Config      | 16 requêtes incident | 10 requêtes descriptives | total |
+| ----------- | -------------------- | ------------------------ | ----- |
+| dense seul  | 75,0 %               | X %                      | X %   |
+| BM25 seul   | 100,0 %              | Y %                      | Y %   |
+| hybride RRF | 87,5 %               | Z %                      | Z %   |
 
 Les requêtes dérivées des incidents sont composées de données
 structurées et contiennent les identifiants exacts du corpus : BM25 y
@@ -140,18 +141,17 @@ résumait l'incident en langue naturelle.
 Le choix du moteur dépend donc d'une décision d'architecture encore
 ouverte, et non d'une propriété intrinsèque des moteurs.
 
-
 ## Retrieval — synthèse et décision (S3-J6)
 
 ### Deux jeux d'évaluation, deux profils de requête
 
-| Config | 16 requêtes incident | 10 requêtes descriptives | latence |
-| --- | --- | --- | --- |
-| dense seul | 75,0 % | 50,0 % | 20–88 ms |
-| **BM25 seul** | **100,0 %** | **80,0 %** | **1,1 ms** |
-| hybride RRF (0,4) | 87,5 % | 70,0 % | 49–69 ms |
-| hybride RRF (0,15) | 87,5 % | 70,0 % | 28–76 ms |
-| hybride + reranking | 62,5 % | non mesuré | 11 326 ms |
+| Config              | 16 requêtes incident | 10 requêtes descriptives | latence    |
+| ------------------- | -------------------- | ------------------------ | ---------- |
+| dense seul          | 75,0 %               | 50,0 %                   | 20–88 ms   |
+| **BM25 seul**       | **100,0 %**          | **80,0 %**               | **1,1 ms** |
+| hybride RRF (0,4)   | 87,5 %               | 70,0 %                   | 49–69 ms   |
+| hybride RRF (0,15)  | 87,5 %               | 70,0 %                   | 28–76 ms   |
+| hybride + reranking | 62,5 %               | non mesuré               | 11 326 ms  |
 
 ### L'hypothèse était fausse
 
@@ -178,13 +178,13 @@ le classement, il ne fait qu'ajouter 76 ms.
 
 ### Configuration retenue : BM25 seul
 
-| Critère | BM25 | hybride |
-| --- | --- | --- |
-| recall (incident) | 100 % | 87,5 % |
-| recall (descriptif) | 80 % | 70 % |
-| latence | 1,1 ms | 76 ms |
-| dépendances | `bm25s` | + Qdrant, fastembed, qdrant-client |
-| temps d'indexation | 0,4 s | 83 s |
+| Critère             | BM25    | hybride                            |
+| ------------------- | ------- | ---------------------------------- |
+| recall (incident)   | 100 %   | 87,5 %                             |
+| recall (descriptif) | 80 %    | 70 %                               |
+| latence             | 1,1 ms  | 76 ms                              |
+| dépendances         | `bm25s` | + Qdrant, fastembed, qdrant-client |
+| temps d'indexation  | 0,4 s   | 83 s                               |
 
 Le code dense et hybride est conservé : il constitue la mesure qui
 justifie la décision, et servira aux ablations de S7.
@@ -197,8 +197,6 @@ deux profils de requête. Un corpus plus large, ou des requêtes produites
 par l'Evidence Collector sous une forme encore inconnue, pourraient
 inverser le résultat. La mesure est à refaire en semaine 4 une fois les
 requêtes réelles connues.
-
-
 
 ## Détecteur de fenêtre (S4-J2)
 
@@ -221,7 +219,6 @@ quatre signaux, fenêtre resserrée autour du plus précoce.
 À faire en J6 : captures avec `warmup=180`, puis mesure de l'écart entre
 la fenêtre détectée et `injected_at`.
 
-
 ## Détecteur de fenêtre (S4-J2)
 
 Algorithme : recherche d'un changepoint par z-score et ratio combinés sur
@@ -230,10 +227,10 @@ de 60 secondes en amont.
 
 ### Mesure
 
-| Capture | `warmup` | écart au début réel | signaux détectés |
-| --- | --- | --- | --- |
-| `INC-20261017-111352` | 60 s | **+20 s** | 1 |
-| `INC-20261017-114814` | 180 s | **−39 s** | 1 |
+| Capture               | `warmup` | écart au début réel | signaux détectés |
+| --------------------- | -------- | ------------------- | ---------------- |
+| `INC-20261017-111352` | 60 s     | **+20 s**           | 1                |
+| `INC-20261017-114814` | 180 s    | **−39 s**           | 1                |
 
 L'écart négatif est le résultat recherché : la fenêtre commence avant
 l'injection, donc avant la cause.
@@ -266,3 +263,63 @@ ramène le début de fenêtre à T−39 s.
 C'est le comportement attendu — un détecteur ne peut pas voir une cause
 avant qu'elle ne produise un effet mesurable. La marge existe pour
 couvrir ce délai.
+
+## Metrics Agent (S4-J3)
+
+Observation de sept signaux sur la fenêtre délimitée par le détecteur,
+comparés à une baseline de cinq minutes.
+
+### Trois modes de comparaison
+
+Un seul critère statistique ne couvre pas tous les signaux.
+
+| Mode         | Signaux                                                  | Critère                      |
+| ------------ | -------------------------------------------------------- | ---------------------------- |
+| `peak`       | `error_rate`, `dependency_failures`, `p95_by_dependency` | pic de la période            |
+| `median`     | `memory_mb`, `cache_entries`, `stock_total`              | changement de niveau         |
+| `saturation` | `db_pool_usage`                                          | fraction du temps au plafond |
+
+Le mode `saturation` est né d'un échec de mesure. La gauge du pool est
+relevée à chaque requête et vaut 0, 1 ou 2 selon l'instant : son pic
+atteint 1,0 en régime sain, et sa variance est telle qu'un pool
+_pourtant saturé en permanence_ obtenait un z-score de **2,02** — sous le
+seuil de 3,0.
+
+Ni le pic ni la médiane ne distinguent ces deux régimes. Ce qui les
+sépare est la proportion de temps passée au plafond : un pool normal y
+touche brièvement, un pool fuité n'en redescend plus.
+
+### Résultat sur `INC-20261017-114814-connection_leak`
+
+| Signal                          | Baseline | Incident  | Anomalie |
+| ------------------------------- | -------- | --------- | -------- |
+| `db_pool_usage`                 | 0,429    | **0,867** | oui      |
+| `dependency_failures[postgres]` | 0        | **4,88**  | oui      |
+| `error_rate`                    | 0        | **0,962** | oui      |
+| `p95[inventory-service]`        | 0,048    | 0,050     | non      |
+| `p95[payment-service]`          | 0,085    | 0,091     | non      |
+| `memory_mb`                     | 90,6     | 93,5      | non      |
+
+Les trois dernières lignes sont aussi informatives que les trois
+premières : l'absence d'anomalie sur les latences et la mémoire écarte
+`slow_response`, `cpu_saturation` et `memory_leak`.
+
+### Limite de cette mesure
+
+La baseline affiche 0,429 de saturation, ce qui est élevé pour un régime
+sain. Elle recouvre la fin de la capture précédente, le pool n'ayant pas
+été libéré entre les deux.
+
+C'est un artefact du protocole de test — captures enchaînées sans
+intervalle — et non du comportement en production, où la fenêtre
+d'incident est précédée d'heures de trafic normal. L'anomalie reste
+détectée malgré cette contamination.
+
+### Latence
+
+| Nœud      | Durée  |
+| --------- | ------ |
+| `detect`  | 390 ms |
+| `metrics` | 438 ms |
+
+Sept requêtes PromQL par nœud, exécutées séquentiellement.

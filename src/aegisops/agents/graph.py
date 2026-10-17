@@ -113,20 +113,33 @@ def timed(name: str, fn: Callable[[IncidentState], dict]) -> Callable:
 # J3, logs en J4, collector en J5.
 
 def detect(state: IncidentState) -> dict:
-    """J2 : délimitera la fenêtre à partir des métriques."""
-    alert = state["alert"]
+    """Délimite la fenêtre d'incident par recherche de changepoint."""
+    from aegisops.agents.detector import WindowDetector
+
+    window, changepoints = WindowDetector().detect(state["alert"])
     return {
-        "window": TimeWindow(
-            start=alert.fired_at - timedelta(minutes=5),
-            end=alert.fired_at + timedelta(minutes=1),
-            reason="fenêtre fixe provisoire",
-        )
+        "window": window,
+        # Les changepoints bruts rejoignent la trace plutôt que l'état :
+        # ils documentent une décision, ils ne servent pas aux nœuds
+        # suivants.
+        "trace": [{
+            "node": "detect.signals",
+            "found": [
+                {"signal": c.signal, "at": c.at.isoformat(), "z": c.z_score}
+                for c in changepoints
+            ],
+        }],
     }
 
 
 def observe_metrics(state: IncidentState) -> dict:
-    """J3 : interrogera Prometheus sur la fenêtre."""
-    return {"metrics": []}
+    """Interroge Prometheus sur la fenêtre et qualifie les écarts."""
+    from aegisops.agents.metrics_agent import MetricsAgent
+
+    observations = MetricsAgent().observe(
+        state["alert"].service, state["window"]
+    )
+    return {"metrics": observations}
 
 
 def observe_logs(state: IncidentState) -> dict:
@@ -234,10 +247,20 @@ def main() -> None:
         for err in result["errors"]:
             print(f"  {err}")
 
-    context = result["context"]
-    print(f"\ncontexte : {context.summary()}")
-    print(f"  fenêtre : {context.window.start.isoformat()} "
-          f"-> {context.window.end.isoformat()}")
+        context = result["context"]
+        print(f"\ncontexte : {context.summary()}")
+        print(f"  fenêtre : {context.window.start.strftime('%H:%M:%S')} -> "
+          f"{context.window.end.strftime('%H:%M:%S')}")
+        print(f"  raison  : {context.window.reason}")
+
+        anomalies = [m for m in context.metrics if m.anomalous]
+        if anomalies:
+            print(f"\nmétriques anormales ({len(anomalies)}/{len(context.metrics)}) :")
+            for o in sorted(anomalies, key=lambda x: -(x.ratio or 0)):
+                dep = o.labels.get("dependency") or o.labels.get("reason") or ""
+                tag = f"[{dep}]" if dep else ""
+                ratio = f"×{o.ratio}" if o.ratio else "depuis 0"
+                print(f"  {o.metric}{tag:<22} {o.baseline} -> {o.peak}  ({ratio})")
 
 
 if __name__ == "__main__":
