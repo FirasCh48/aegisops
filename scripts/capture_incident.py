@@ -128,26 +128,16 @@ def restart_services() -> None:
     enregistre une phase baseline polluée — observé lors de la première
     campagne, où une baseline contenait 288 db_pool_timeout au lieu de
     zéro.
-
-    C'est exactement ce que les postmortems décrivent sous la mention
-    « redémarrage requis » : l'écrire dans la documentation sans
-    l'appliquer dans le code produit des données fausses.
     """
     print("  [boot]  redémarrage des services")
     script = ROOT / "sandbox" / "run_services.sh"
     env = {**os.environ, "POOL_TIMEOUT": "1", "FAULTS_ENABLED": "1"}
     subprocess.run([str(script), "restart"], cwd=ROOT, env=env, check=True)
-    # Laisse le temps aux services de rouvrir leurs ports et à Prometheus
-    # de les scraper au moins une fois.
     time.sleep(15)
 
 
 def reset_environment() -> None:
-    """Remet le bac à sable dans un état connu.
-
-    Sans cette étape, une panne oubliée d'une capture précédente
-    contamine la suivante — erreur commise cinq fois manuellement.
-    """
+    """Remet le bac à sable dans un état connu."""
     print("  [reset] stock inventory")
     _post(f"{SERVICES['inventory-service']}/admin/reset")
 
@@ -243,8 +233,6 @@ def capture(
     # Trois phases distinctes. Résumer la fenêtre entière mélangerait le
     # cold start, le fond sain et l'incident : le pic global tomberait
     # souvent dans le démarrage, et l'agent daterait mal l'incident.
-    # Découpées ainsi, les données portent la comparaison elle-même —
-    # « p95 payment : 0,05 s puis 4,85 s » — plutôt qu'une valeur isolée.
     phases = {
         "baseline": (
             window_start + timedelta(seconds=COLD_START_SKIP_S),
@@ -255,17 +243,36 @@ def capture(
     }
 
     metrics: dict[str, dict] = {}
+    # Les points bruts, en plus des résumés. Un résumé suffit à un LLM,
+    # qui raisonne sur « 86 Mo puis 381 Mo » ; il ne suffit pas à un
+    # algorithme qui cherche l'instant où le signal change de régime.
+    # Le détecteur de fenêtre (S4-J2) a besoin de la série complète, et
+    # la rétention de Prometheus est de six heures : sans ces points
+    # stockés, une capture devient inexploitable le lendemain.
+    metrics_raw: dict[str, dict] = {}
+
     for key, promql in METRIC_QUERIES.items():
         metrics[key] = {}
+        metrics_raw[key] = {}
         for phase, (p_start, p_end) in phases.items():
             if (p_end - p_start).total_seconds() < 15:
                 metrics[key][phase] = []
+                metrics_raw[key][phase] = []
                 continue
             try:
                 series = prom.query_range(promql, p_start, p_end, step="15s")
                 metrics[key][phase] = [s.summary() for s in series]
+                metrics_raw[key][phase] = [
+                    {
+                        "labels": s.labels,
+                        "points": [[ts.isoformat(), v] for ts, v in s.points],
+                    }
+                    for s in series
+                ]
             except Exception as e:
-                metrics[key][phase] = {"error": f"{type(e).__name__}: {e}"}
+                err = {"error": f"{type(e).__name__}: {e}"}
+                metrics[key][phase] = err
+                metrics_raw[key][phase] = err
 
     logs: dict[str, dict] = {}
     for service in SERVICES:
@@ -282,8 +289,7 @@ def capture(
 
     # Une baseline qui contient déjà des erreurs invalide la comparaison :
     # l'agent ne peut pas juger qu'un état est anormal s'il n'a pas vu
-    # l'état normal. On marque le fichier plutôt que de le jeter — le
-    # script d'indexation décidera.
+    # l'état normal.
     baseline_counts = logs["checkout-service"]["baseline"]["counts"]
     baseline_errors = {
         k: v for k, v in baseline_counts.items()
@@ -308,6 +314,7 @@ def capture(
             "cold_start_skipped_s": COLD_START_SKIP_S,
         },
         "metrics": metrics,
+        "metrics_raw": metrics_raw,
         "logs": logs,
         # Le label : connu avec certitude parce que c'est nous qui avons
         # cassé le système. C'est ce qui rend l'évaluation possible.
@@ -316,9 +323,7 @@ def capture(
             "remediation": scenario["remediation"],
         },
         # holdout : réservé à l'évaluation. Ne servira jamais de graine à
-        # la génération synthétique en S6 — sinon le modèle serait
-        # entraîné sur des quasi-copies de son propre jeu de test, et la
-        # métrique obtenue serait excellente et mensongère.
+        # la génération synthétique en S6.
         "holdout": holdout,
         "baseline_clean": not baseline_errors,
     }
@@ -328,7 +333,8 @@ def capture(
     path.write_text(json.dumps(record, indent=2, ensure_ascii=False))
 
     checkout_logs = logs["checkout-service"]
-    print(f"  [done]  {path.name}")
+    size_kb = path.stat().st_size / 1024
+    print(f"  [done]  {path.name}  ({size_kb:.0f} Ko)")
     print(f"          baseline : {checkout_logs['baseline']['counts']}")
     print(f"          incident : {checkout_logs['incident']['counts']}")
     print(f"          recovery : {checkout_logs['recovery']['counts']}")

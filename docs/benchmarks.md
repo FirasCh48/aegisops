@@ -197,3 +197,72 @@ deux profils de requête. Un corpus plus large, ou des requêtes produites
 par l'Evidence Collector sous une forme encore inconnue, pourraient
 inverser le résultat. La mesure est à refaire en semaine 4 une fois les
 requêtes réelles connues.
+
+
+
+## Détecteur de fenêtre (S4-J2)
+
+Algorithme : recherche d'un changepoint par z-score et ratio combinés sur
+quatre signaux, fenêtre resserrée autour du plus précoce.
+
+**Non mesuré.** Deux obstacles, tous deux liés aux données disponibles :
+
+1. La rétention de Prometheus est de six heures ; les seize incidents de
+   la semaine 2 n'ont plus de séries interrogeables. Les points bruts
+   sont désormais enregistrés dans `metrics_raw` à la capture, ce qui
+   rendra la mesure reproductible — mais seulement pour les captures à
+   venir.
+
+2. Sur la capture de test, la baseline ne compte que cinq points avant
+   l'injection : le `warmup` de 60 secondes et le redémarrage des
+   services ne laissent pas assez de régime sain. La référence du
+   détecteur, prise sur huit points, englobe alors l'incident lui-même.
+
+À faire en J6 : captures avec `warmup=180`, puis mesure de l'écart entre
+la fenêtre détectée et `injected_at`.
+
+
+## Détecteur de fenêtre (S4-J2)
+
+Algorithme : recherche d'un changepoint par z-score et ratio combinés sur
+quatre signaux, fenêtre resserrée autour du plus précoce, avec une marge
+de 60 secondes en amont.
+
+### Mesure
+
+| Capture | `warmup` | écart au début réel | signaux détectés |
+| --- | --- | --- | --- |
+| `INC-20261017-111352` | 60 s | **+20 s** | 1 |
+| `INC-20261017-114814` | 180 s | **−39 s** | 1 |
+
+L'écart négatif est le résultat recherché : la fenêtre commence avant
+l'injection, donc avant la cause.
+
+### Le `warmup` conditionne la détection
+
+Avec 60 secondes de trafic sain, la série du pool ne compte que cinq
+points avant l'injection. La référence du détecteur, prise sur huit
+points, englobe alors l'incident lui-même : la médiane devient la valeur
+de panne, et plus aucun point ne s'en écarte. Le détecteur se rabat sur
+un signal secondaire — la latence de `payment-service` — et la fenêtre
+commence vingt secondes **après** l'injection.
+
+Avec 180 secondes, la baseline compte douze points et le changepoint est
+détecté sur le bon signal.
+
+**Conséquence : les captures destinées à mesurer le détecteur doivent
+avoir `warmup ≥ 180`.** Les seize captures de la semaine 2 utilisaient
+60 secondes et leurs séries ne sont plus interrogeables (rétention
+Prometheus de six heures) — elles apparaissent à 0 signal dans
+l'évaluation.
+
+### Pourquoi l'écart n'est pas de −60 s
+
+Le détecteur repère l'apparition **métrique** de la panne, pas son
+injection. Sur cette capture, le pool passe de 0 à 0,3 à T+6 s et atteint
+1,0 à T+21 s : le changepoint est détecté à T+21 s, et la marge de 60 s
+ramène le début de fenêtre à T−39 s.
+
+C'est le comportement attendu — un détecteur ne peut pas voir une cause
+avant qu'elle ne produise un effet mesurable. La marge existe pour
+couvrir ce délai.
