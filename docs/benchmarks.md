@@ -627,3 +627,37 @@ le diagnostic comme cette mesure les ont inclus. Ils ne constituent donc
 pas une vérification indépendante. Sur ces six seuls, un passage par
 document, le seul rang qui change est celui de
 `INC-20261003-194922-connection_leak`, qui passe de 2 à 1.
+
+
+> Mesures effectuées sur le corpus antérieur à S4-J5. Les chiffres
+> actualisés figurent dans la section « Retrieval — mesures après
+> correction du corpus ».
+
+## Retrieval — mesures après correction du corpus (S4-J5)
+
+Index dense reconstruit, 26 requêtes (16 incident + 10 descriptives).
+
+| Config | recall@5 | MRR | latence |
+| --- | --- | --- | --- |
+| dense seul | 69,2 % | 0,522 | 110 ms |
+| **BM25 seul** | **92,3 %** | **0,683** | **2,6 ms** |
+| hybride RRF | 80,8 % | 0,596 | 164 ms |
+| hybride + reranking | 73,1 % | 0,576 | 14 803 ms |
+
+| | dense | BM25 | hybride | rerank |
+| --- | --- | --- | --- | --- |
+| incident (16) | 81 % | **100 %** | 88 % | 69 % |
+| descriptif (10) | 50 % | **80 %** | 70 % | 80 % |
+
+Le classement établi en S3 est confirmé sur un corpus corrigé et sur les
+deux jeux d'évaluation : BM25 seul domine les trois autres
+configurations, sur les deux profils de requête, pour 2,6 ms contre 110
+à 14 800 ms.
+
+`memory_leak` passe de 0 % à 100 % sur BM25 — effet de la correction du
+nommage, qui rend les tableaux « Observed symptoms » comparables entre
+les six postmortems.
+
+Le reranking reste la pire configuration malgré 80 % sur les requêtes
+descriptives : il s'effondre sur les requêtes structurées (69 %), pour
+un coût de 14,8 secondes par requête.
