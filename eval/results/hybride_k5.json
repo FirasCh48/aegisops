@@ -1,22 +1,24 @@
 {
   "config": "hybride RRF",
   "k": 5,
-  "queries": 16,
-  "recall_at_k": 0.875,
-  "mrr": 0.5583,
-  "mean_rank_when_found": 2.29,
-  "latency_ms_mean": 69.3,
-  "latency_ms_p95": 83.0,
+  "queries": 26,
+  "recall_at_k": 0.8077,
+  "mrr": 0.5955,
+  "mean_rank_when_found": 1.86,
+  "latency_ms_mean": 163.5,
+  "latency_ms_p95": 478.7,
   "per_scenario": {
     "bad_release": 1.0,
     "connection_leak": 1.0,
     "cpu_saturation": 1.0,
     "internal_error": 1.0,
+    "manual": 0.7,
     "memory_leak": 0.0,
     "slow_response": 1.0
   },
   "per_origin": {
-    "incident": 0.875
+    "incident": 0.875,
+    "manual": 0.7
   },
   "misses": [
     {
@@ -27,7 +29,7 @@
       "got": [
         "sandbox/internal_error.md",
         "sandbox/cpu_saturation.md",
-        "sandbox/internal_error.md"
+        "sandbox/slow_response.md"
       ]
     },
     {
@@ -39,6 +41,39 @@
         "sandbox/cpu_saturation.md",
         "sandbox/internal_error.md",
         "sandbox/slow_response.md"
+      ]
+    },
+    {
+      "query_id": "M-002",
+      "expected": [
+        "PUB-002"
+      ],
+      "got": [
+        "PUB-042",
+        "PUB-016",
+        "PUB-016"
+      ]
+    },
+    {
+      "query_id": "M-008",
+      "expected": [
+        "PUB-035"
+      ],
+      "got": [
+        "sandbox/memory_leak.md",
+        "PUB-013",
+        "PUB-007"
+      ]
+    },
+    {
+      "query_id": "M-009",
+      "expected": [
+        "PUB-039"
+      ],
+      "got": [
+        "PUB-028",
+        "PUB-028",
+        "PUB-015"
       ]
     }
   ]

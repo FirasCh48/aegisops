@@ -78,6 +78,13 @@ class RetrievedPassage(BaseModel):
     score: float
     text: str
     origin: str = ""
+    # Section « Discriminating signal » du postmortem dont vient le
+    # passage, recopiée du corpus. Seuls les postmortems du bac à sable
+    # en ont une ; ailleurs, le champ reste vide. C'est ce qui permet au
+    # raisonnement de séparer deux documents que BM25 ne sépare pas —
+    # `connection_leak` et `bad_release` ne diffèrent que par
+    # l'événement `deployment`.
+    discriminating_signal: str | None = None
 
 
 class IncidentContext(BaseModel):

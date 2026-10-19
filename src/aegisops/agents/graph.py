@@ -136,10 +136,11 @@ def observe_metrics(state: IncidentState) -> dict:
     """Interroge Prometheus sur la fenêtre et qualifie les écarts."""
     from aegisops.agents.metrics_agent import MetricsAgent
 
-    observations = MetricsAgent().observe(
-        state["alert"].service, state["window"]
-    )
-    return {"metrics": observations}
+    return {
+        "metrics": MetricsAgent().observe(
+            state["alert"].service, state["window"]
+        )
+    }
 
 
 def observe_logs(state: IncidentState) -> dict:
@@ -150,13 +151,44 @@ def observe_logs(state: IncidentState) -> dict:
 
 
 def collect(state: IncidentState) -> dict:
-    """J5 : fusionnera les observations et construira la requête RAG."""
-    return {"search_query": ""}
+    """Fusionne les observations et construit la requête de recherche."""
+    from aegisops.agents.collector import collect as _collect
+
+    return _collect(state)
 
 
 def retrieve(state: IncidentState) -> dict:
-    """J5 : appellera rag.search() avec la requête construite."""
-    return {"passages": []}
+    """Recherche documentaire sur le corpus de postmortems.
+
+    BM25 seul : les mesures de S3-J6 ont établi qu'il domine le dense et
+    l'hybride sur les deux jeux d'évaluation (100 % / 80 % contre
+    87,5 % / 70 %), pour 1,1 ms contre 76 ms.
+    """
+    from aegisops.agents.state import RetrievedPassage
+    from aegisops.rag.sparse import SparseIndex
+
+    index = SparseIndex()
+    index.load()
+    # Un passage par document : cinq places, cinq hypothèses distinctes.
+    # La déduplication vit dans `search_documents` et non dans `search`,
+    # que l'évaluation et l'hybride consomment au niveau du chunk.
+    hits = index.search_documents(state["search_query"], limit=5)
+
+    return {
+        "passages": [
+            RetrievedPassage(
+                chunk_id=h.chunk_id,
+                doc_id=h.doc_id,
+                score=h.score,
+                text=h.text,
+                origin=h.origin,
+                discriminating_signal=index.section(
+                    h.doc_id, "Discriminating signal"
+                ),
+            )
+            for h in hits
+        ]
+    }
 
 
 def assemble(state: IncidentState) -> dict:

@@ -29,7 +29,7 @@ was removed.
 | `db_pool_timeout` | 0 | 978 | 80 |
 | `connection_leaked` | 0 | 10 | — |
 | checkout p95 | 130 ms | ~1,100 ms | ~1,100 ms |
-| pool gauge | 0 | climbs to 1 | **stays at 1** |
+| `db_pool_usage` | 0 | climbs to 1 | **stays at 1** |
 
 ## Investigation
 

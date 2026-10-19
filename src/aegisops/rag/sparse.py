@@ -99,6 +99,53 @@ class SparseIndex:
             ))
         return hits
 
+    def search_documents(self, query: str, limit: int = 5) -> list[Hit]:
+        """Au plus un passage par document : le mieux classé.
+
+        Placé à côté de `search` plutôt qu'à sa place. `search` reste au
+        niveau du chunk pour deux appelants qui en dépendent :
+        `eval/retrieval_eval.py` prend le rang du premier chunk du
+        document attendu — dédupliquer là ferait remonter ce rang et
+        rendrait les mesures incomparables avec celles de S3 — et
+        `HybridIndex` fusionne en RRF des listes de chunks.
+
+        Le besoin, lui, est celui du pipeline. Les tableaux « Observed
+        symptoms » d'un même postmortem et sa section « Investigation »
+        occupaient deux des cinq places ; le bon document en perdait une.
+
+        On sur-récupère puis on filtre, en doublant tant que les
+        documents distincts manquent.
+        """
+        if self.retriever is None:
+            self.load()
+
+        fetch = limit * 4
+        while True:
+            fetch = min(fetch, len(self.chunks))
+            best: dict[str, Hit] = {}
+            # `search` rend les chunks par score décroissant : le premier
+            # vu pour un document est son meilleur.
+            for hit in self.search(query, limit=fetch):
+                best.setdefault(hit.doc_id, hit)
+            if len(best) >= limit or fetch == len(self.chunks):
+                return list(best.values())[:limit]
+            fetch *= 2
+
+    def section(self, doc_id: str, name: str) -> str | None:
+        """Texte d'une section d'un document, tel qu'il figure au corpus.
+
+        `None` si le document n'a pas cette section. Les postmortems
+        publics n'ont pas de section « Discriminating signal », et rien ne
+        doit en tenir lieu.
+        """
+        if not self.chunks:
+            self.load()
+        parts = [
+            c["text"] for c in self.chunks
+            if c["doc_id"] == doc_id and c.get("section") == name
+        ]
+        return "\n\n".join(parts) if parts else None
+
 
 def main() -> None:
     index = SparseIndex()
