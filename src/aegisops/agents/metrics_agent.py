@@ -36,7 +36,7 @@ RATIO_THRESHOLD = 1.5
 # Seuils propres au mode "saturation" : une proportion issue d'une
 # vingtaine de points ne supporte pas un test statistique, on retient un
 # niveau élevé et un écart absolu franc.
-SATURATION_LEVEL = 0.8
+SATURATION_LEVEL = 0.5
 SATURATION_DELTA = 0.3
 
 # Les signaux et ce qu'ils discriminent. L'ordre suit la hiérarchie de

@@ -5,8 +5,8 @@
   "recall_at_k": 0.7308,
   "mrr": 0.5763,
   "mean_rank_when_found": 1.79,
-  "latency_ms_mean": 14803.2,
-  "latency_ms_p95": 16734.3,
+  "latency_ms_mean": 16303.7,
+  "latency_ms_p95": 20712.4,
   "per_scenario": {
     "bad_release": 0.333,
     "connection_leak": 1.0,
