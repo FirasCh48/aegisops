@@ -11,6 +11,7 @@ dependencies = [
     "asyncpg>=0.31.0",
     "beautifulsoup4>=4.15.0",
     "bm25s>=0.3.13",
+    "drain3>=0.9.11",
     "fastapi>=0.141.1",
     "fastembed>=0.9.0",
     "google-genai>=2.22.0",

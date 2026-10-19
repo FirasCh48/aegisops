@@ -323,3 +323,59 @@ détectée malgré cette contamination.
 | `metrics` | 438 ms |
 
 Sept requêtes PromQL par nœud, exécutées séquentiellement.
+
+
+## Log Agent (S4-J4)
+
+Interroge les trois services sur la fenêtre, agrège par type d'événement
+et regroupe les lignes non structurées par motif.
+
+### Deux niveaux de lecture
+
+Les logs du bac à sable sont du JSON structuré : le champ `event` suffit
+à les agréger. Le template mining (`drain3`) existe pour les logs qu'on
+ne contrôle pas — un service tiers, une bibliothèque — où trois cents
+messages ne diffèrent que par un identifiant.
+
+Vérifié sur un jeu synthétique : cinq lignes donnent deux motifs
+abstraits avec leurs comptes.
+
+Le template doit être relu **après** l'ingestion complète. `drain3`
+généralise au fil des messages, et le template retourné sur la première
+ligne d'un groupe est encore cette ligne elle-même.
+
+### Résultat sur `INC-20261017-114814-connection_leak` 
+
+checkout-service :
+db_pool_timeout ×713 version=v2.7, pool_size=10
+dependency_error ×12 dependency=inventory-service, status=409
+connection_leaked ×10 version=v2.7, pool_size=10
+inventory-service :
+out_of_stock ×12
+
+
+Deux informations que les métriques ne donnent pas :
+
+- le champ `version=v2.7` sur chaque erreur. C'est le seul élément qui
+  sépare `connection_leak` de `bad_release`, dont les métriques sont
+  identiques.
+- la correspondance `dependency_error ×12` / `out_of_stock ×12` entre
+  deux services. Le rapprochement se fait par les comptes, sans qu'on
+  l'ait programmé.
+
+### Trois listes d'exclusion, trois raisons
+
+| Liste | Sort du résumé | Pourquoi |
+| --- | --- | --- |
+| `NOMINAL_EVENTS` | oui | leur volume écraserait le signal |
+| `SANDBOX_EVENTS` | oui | **ils donnent la réponse** |
+| `CONTEXT_EVENTS` | non, marqués `[contexte]` | ils sont la preuve discriminante |
+
+La deuxième ligne est une correction apportée après la première mesure :
+`fault_injected` et `fault_cleared` apparaissaient dans le résumé. Ces
+événements n'existent que dans le bac à sable, et leur seul nom indique
+qu'une panne a été injectée — un Root Cause Agent les lisant n'aurait
+plus rien à déduire.
+
+Ils restent dans l'état, consultables pour l'analyse a posteriori. Seul
+le résumé transmis au prompt les écarte.

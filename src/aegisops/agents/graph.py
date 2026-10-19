@@ -143,8 +143,10 @@ def observe_metrics(state: IncidentState) -> dict:
 
 
 def observe_logs(state: IncidentState) -> dict:
-    """J4 : interrogera Loki et extraira les motifs avec drain3."""
-    return {"logs": []}
+    """Interroge Loki sur la fenêtre et extrait les motifs."""
+    from aegisops.agents.log_agent import LogAgent
+
+    return {"logs": LogAgent().observe(state["window"])}
 
 
 def collect(state: IncidentState) -> dict:
