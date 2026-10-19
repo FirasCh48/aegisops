@@ -136,8 +136,44 @@ class IncidentState(TypedDict, total=False):
     passages: list[RetrievedPassage]
     context: IncidentContext
 
+    # Produit par le nœud `analyse`. Un champ absent de ce TypedDict est
+    # silencieusement écarté par LangGraph : le nœud le renvoie, le
+    # graphe ne le reconnaît pas, et rien ne signale la perte.
+    hypothesis: RootCauseHypothesis
+
     # Journal d'exécution. Accumulé plutôt que remplacé : c'est ce qui
-    # permettra de lire une investigation a posteriori, et de mesurer la
-    # latence par nœud en J6.
+    # permet de lire une investigation a posteriori, et de mesurer la
+    # latence par nœud.
     trace: Annotated[list[dict], append]
     errors: Annotated[list[str], append]
+
+class Evidence(BaseModel):
+    """Une preuve citée à l'appui d'une affirmation.
+
+    Le champ `source` doit correspondre à une observation réellement
+    présente dans l'IncidentContext. C'est ce que le Verification Agent
+    vérifiera en J2 : une preuve inventée est la forme la plus
+    dangereuse d'hallucination, parce qu'elle rend le rapport crédible.
+    """
+
+    source: str          # "metric:db_pool_usage" ou "log:db_pool_timeout"
+    observation: str     # ce que la preuve montre, en une phrase
+    supports: str = ""   # quelle affirmation elle étaye
+
+
+class RootCauseHypothesis(BaseModel):
+    """Sortie du Root Cause Agent.
+
+    `confidence` est demandée au modèle, pas calculée. Elle sert de
+    signal, pas de garantie : un modèle sûr de lui et faux existe. Ce
+    qui la rend exploitable est sa confrontation aux preuves en J2.
+    """
+
+    root_cause: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    evidence: list[Evidence] = Field(default_factory=list)
+    ruled_out: list[str] = Field(default_factory=list)
+    # Rempli par le parseur quand la sortie du modèle était malformée.
+    # Conservé plutôt qu'écarté : une sortie partiellement récupérée
+    # reste utilisable, et le champ dit au lecteur de s'en méfier.
+    parse_warning: str = ""

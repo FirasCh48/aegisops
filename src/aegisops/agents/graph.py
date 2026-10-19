@@ -1,9 +1,10 @@
 """Graphe d'investigation : assemblage des nœuds et de l'état.
 
-Six nœuds qui observent et rassemblent, sans conclure. Le raisonnement
-sur les preuves collectées appartient à la semaine 5 ; cette séparation
-garantit que chaque affirmation du rapport final pourra être rattachée à
-une observation vérifiable.
+Sept nœuds. Les six premiers observent et rassemblent sans conclure ; le
+septième raisonne. Cette séparation garantit que chaque affirmation du
+rapport pourra être rattachée à une observation vérifiable — c'est la
+condition pour que le Verification Agent de J2 puisse rejeter ce qui ne
+l'est pas.
 
 Les nœuds sont produits par des fabriques qui reçoivent les clients à
 utiliser. Cette indirection existe pour une raison précise : la rétention
@@ -53,6 +54,8 @@ ALLOWED_MSGPACK_MODULES = [
     ("aegisops.agents.state", "LogObservation"),
     ("aegisops.agents.state", "RetrievedPassage"),
     ("aegisops.agents.state", "IncidentContext"),
+    ("aegisops.agents.state", "Evidence"),
+    ("aegisops.agents.state", "RootCauseHypothesis"),
 ]
 
 
@@ -113,7 +116,7 @@ def timed(name: str, fn: Callable[[IncidentState], dict]) -> Callable:
     return wrapper
 
 
-# --- Nœuds ---------------------------------------------------------------
+# --- Nœuds d'observation -------------------------------------------------
 
 def _detect(clients: dict):
     """Délimite la fenêtre d'incident par recherche de changepoint."""
@@ -215,7 +218,8 @@ def _retrieve(clients: dict):
 
 
 def _assemble(clients: dict):
-    """Rassemble le livrable. Ce nœud ne produit rien de nouveau."""
+    """Rassemble le livrable d'observation. Ce nœud ne produit rien de
+    nouveau : il fige ce que les précédents ont collecté."""
 
     def node(state: IncidentState) -> dict:
         return {
@@ -232,6 +236,25 @@ def _assemble(clients: dict):
     return node
 
 
+# --- Nœud de raisonnement ------------------------------------------------
+
+def _analyse(clients: dict):
+    """Première inférence du pipeline.
+
+    Les six nœuds précédents calculaient ; celui-ci raisonne. Sa sortie
+    est contrainte — cause, confiance, preuves citées, hypothèses
+    écartées — parce qu'une prose libre, même juste, ne serait pas
+    vérifiable champ par champ.
+    """
+
+    def node(state: IncidentState) -> dict:
+        from aegisops.agents.root_cause import RootCauseAgent
+
+        return {"hypothesis": RootCauseAgent().analyse(state)}
+
+    return node
+
+
 # --- Assemblage ----------------------------------------------------------
 
 def build_graph(checkpointer=None, clients: dict | None = None):
@@ -242,7 +265,9 @@ def build_graph(checkpointer=None, clients: dict | None = None):
 
     Les nœuds métriques et logs sont indépendants et pourront être
     parallélisés — mais tant que leurs durées ne sont pas mesurées, le
-    faire serait optimiser à l'aveugle.
+    faire serait optimiser à l'aveugle. Depuis l'ajout du nœud `analyse`,
+    la question se pose moins : un appel LLM pèse des secondes, les deux
+    nœuds d'observation quelques dizaines de millisecondes.
     """
     clients = clients or {}
     graph = StateGraph(IncidentState)
@@ -253,6 +278,7 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     graph.add_node("collect", timed("collect", _collect(clients)))
     graph.add_node("retrieve", timed("retrieve", _retrieve(clients)))
     graph.add_node("assemble", timed("assemble", _assemble(clients)))
+    graph.add_node("analyse", timed("analyse", _analyse(clients)))
 
     graph.add_edge(START, "detect")
     graph.add_edge("detect", "metrics")
@@ -260,7 +286,8 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     graph.add_edge("logs", "collect")
     graph.add_edge("collect", "retrieve")
     graph.add_edge("retrieve", "assemble")
-    graph.add_edge("assemble", END)
+    graph.add_edge("assemble", "analyse")
+    graph.add_edge("analyse", END)
 
     return graph.compile(checkpointer=checkpointer)
 
@@ -272,10 +299,11 @@ def investigate(
 ) -> IncidentState:
     """Point d'entrée. Chaque exécution est un thread distinct.
 
-    Le checkpointer enregistre l'état après chaque nœud. Sur CPU, une
-    investigation complète prendra plusieurs minutes à partir de S5 :
-    pouvoir reprendre après le nœud qui a échoué, plutôt que tout
-    relancer, change le coût d'une itération de développement.
+    Le checkpointer enregistre l'état après chaque nœud. Depuis l'ajout
+    du nœud `analyse`, une investigation dure plusieurs secondes avec un
+    fournisseur distant et plusieurs minutes en local : pouvoir reprendre
+    après le nœud qui a échoué, plutôt que tout relancer, change le coût
+    d'une itération de développement.
     """
     CHECKPOINT_DB.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(CHECKPOINT_DB, check_same_thread=False)
@@ -293,8 +321,8 @@ def replay(incident_path: str, thread_id: str | None = None) -> IncidentState:
     """Rejoue une investigation sur une capture stockée.
 
     Même graphe, mêmes nœuds, clients différents. Permet de mesurer le
-    pipeline sur les dix-neuf incidents à tout moment, sans dépendre de
-    la rétention de six heures de Prometheus ni d'un bac à sable actif.
+    pipeline sur les captures à tout moment, sans dépendre de la
+    rétention de six heures de Prometheus ni d'un bac à sable actif.
     """
     import json
     from datetime import datetime
@@ -343,9 +371,6 @@ def main() -> None:
             labels={"severity": "critical", "team": "platform"},
         )
         print(f"alerte : {alert.service} — {alert.summary}\n")
-        # Thread unique par exécution : réutiliser le même ferait
-        # s'accumuler les traces, le réducteur `append` ajoutant les
-        # nouvelles étapes à celles de l'exécution précédente.
         result = investigate(
             alert, thread_id=f"demo-{alert.fired_at.timestamp():.0f}"
         )
@@ -384,6 +409,21 @@ def main() -> None:
         print("\npassages :")
         for p in context.passages:
             print(f"  {p.score:>7.2f}  {p.chunk_id}")
+
+    hypothesis = result.get("hypothesis")
+    if hypothesis:
+        print(f"\nhypothèse (confiance {hypothesis.confidence}) :")
+        print(f"  {hypothesis.root_cause}")
+        if hypothesis.parse_warning:
+            print(f"  avertissement : {hypothesis.parse_warning}")
+        if hypothesis.evidence:
+            print("\n  preuves citées :")
+            for e in hypothesis.evidence:
+                print(f"    {e.source:<34} {e.observation}")
+        if hypothesis.ruled_out:
+            print("\n  hypothèses écartées :")
+            for x in hypothesis.ruled_out:
+                print(f"    {x}")
 
 
 if __name__ == "__main__":
