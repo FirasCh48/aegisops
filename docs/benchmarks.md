@@ -661,3 +661,43 @@ les six postmortems.
 Le reranking reste la pire configuration malgré 80 % sur les requêtes
 descriptives : il s'effondre sur les requêtes structurées (69 %), pour
 un coût de 14,8 secondes par requête.
+
+
+## Rejeu hors ligne (S4-J6)
+
+La rétention de Prometheus est de six heures. Sans rejeu, le pipeline
+n'est mesurable que sur une capture faite le jour même — ce qui imposait
+sept minutes de capture avant chaque session de mesure.
+
+`src/aegisops/tools/replay.py` expose la même interface que les clients
+réels, en lisant `metrics_raw` et `logs` depuis le JSON d'une capture.
+Les nœuds du graphe sont identiques dans les deux cas : ce qui est mesuré
+hors ligne est le pipeline de production, pas une variante écrite pour le
+test.
+
+| | En direct | En rejeu |
+| --- | --- | --- |
+| Docker requis | oui | non |
+| Trafic requis | oui | non |
+| Durée | ~2 s + 7 min de capture | 1,7 s |
+| Reproductible | non (rétention 6 h) | oui |
+
+### Couverture
+
+Seules les captures postérieures à S4-J2 contiennent `metrics_raw` :
+trois sur dix-neuf, toutes `connection_leak`. Les seize autres lèvent une
+erreur explicite plutôt que de produire un résultat faux.
+
+Une campagne de captures avec `warmup=180` est nécessaire pour mesurer le
+pipeline sur les six scénarios. Elle est reportée au début de S5, afin
+d'être faite une seule fois, avec le Root Cause Agent en place.
+
+### Correction du seuil de saturation
+
+Le rejeu a révélé que `SATURATION_LEVEL = 0.8` était trop élevé. La
+fenêtre d'analyse commence 60 secondes avant l'incident : sur 18 points
+dont 5 précèdent la saturation, un pool épuisé plafonne à 0,72.
+
+Le seuil est ramené à 0,5, l'écart minimal restant à 0,3. C'est l'écart
+qui porte le signal — passer de 0 % à 70 % de temps au plafond est un
+changement de régime, quelle que soit la part de fenêtre saine incluse.

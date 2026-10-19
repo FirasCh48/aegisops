@@ -179,7 +179,15 @@ def build_summary(
         for o in normal:
             dep = _dep(o.labels)
             name = f"{o.metric}[{dep}]" if dep else o.metric
-            lines.append(f"  {name}: {o.baseline} -> {o.peak}")
+            # Une métrique qui baisse n'est pas « anormale » au sens du
+            # détecteur — le critère exige un ratio supérieur à 1 — mais
+            # la présenter comme normale est trompeur : `stock_total`
+            # perd ici les deux tiers de sa valeur. Le mouvement est
+            # signalé, sans être classé comme symptôme.
+            drop = ""
+            if o.ratio is not None and o.ratio < 0.7:
+                drop = f"  (down ×{o.ratio}, not flagged: a decrease)"
+            lines.append(f"  {name}: {o.baseline} -> {o.peak}{drop}")
 
     by_service: dict[str, list[LogObservation]] = {}
     for o in logs:
