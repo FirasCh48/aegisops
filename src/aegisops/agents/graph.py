@@ -56,6 +56,8 @@ ALLOWED_MSGPACK_MODULES = [
     ("aegisops.agents.state", "IncidentContext"),
     ("aegisops.agents.state", "Evidence"),
     ("aegisops.agents.state", "RootCauseHypothesis"),
+    ("aegisops.agents.state", "VerifiedClaim"),
+    ("aegisops.agents.state", "VerificationReport"),
 ]
 
 
@@ -254,7 +256,19 @@ def _analyse(clients: dict):
 
     return node
 
+def _verify(clients: dict):
+    """Contrôle les preuves citées contre les observations collectées.
 
+    Aucun appel LLM : la vérification doit être déterministe, et un
+    modèle qui en contrôle un autre introduirait une circularité.
+    """
+
+    def node(state: IncidentState) -> dict:
+        from aegisops.agents.verifier import verify
+
+        return verify(state)
+
+    return node
 # --- Assemblage ----------------------------------------------------------
 
 def build_graph(checkpointer=None, clients: dict | None = None):
@@ -269,9 +283,26 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     la question se pose moins : un appel LLM pèse des secondes, les deux
     nœuds d'observation quelques dizaines de millisecondes.
     """
+        # Un champ renvoyé par un nœud mais absent de IncidentState est
+    # silencieusement écarté par LangGraph. L'erreur est passée deux fois
+    # (hypothesis en J1, verification en J2) et ne se voit qu'à
+    # l'affichage, plusieurs minutes plus tard.
+    declared = set(IncidentState.__annotations__)
+    expected = {"alert", "window", "metrics", "logs", "search_query",
+                "passages", "context", "hypothesis", "verification",
+                "trace", "errors"}
+    missing = expected - declared
+    if missing:
+        raise RuntimeError(
+            f"champs absents de IncidentState : {sorted(missing)} — "
+            "ils seraient écartés sans erreur à l'exécution"
+        )
+
     clients = clients or {}
     graph = StateGraph(IncidentState)
 
+
+    graph.add_node("verify", timed("verify", _verify(clients)))
     graph.add_node("detect", timed("detect", _detect(clients)))
     graph.add_node("metrics", timed("metrics", _metrics(clients)))
     graph.add_node("logs", timed("logs", _logs(clients)))
@@ -287,7 +318,8 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     graph.add_edge("collect", "retrieve")
     graph.add_edge("retrieve", "assemble")
     graph.add_edge("assemble", "analyse")
-    graph.add_edge("analyse", END)
+    graph.add_edge("analyse", "verify")
+    graph.add_edge("verify", END)
 
     return graph.compile(checkpointer=checkpointer)
 
@@ -425,6 +457,15 @@ def main() -> None:
             for x in hypothesis.ruled_out:
                 print(f"    {x}")
 
+
+        verification = result.get("verification")
+    if verification:
+        print(f"\nvérification : {verification.summary()}")
+        for c in verification.claims:
+            mark = {"verified": "ok ", "misquoted": "!! ", "unsupported": "XX "}[c.status]
+            print(f"  {mark} {c.source:<36} {c.detail}")
+        for r in verification.ruled_out_unsupported:
+            print(f"  XX  hypothèse écartée sans source : {r[:70]}")
 
 if __name__ == "__main__":
     main()

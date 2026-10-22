@@ -141,6 +141,11 @@ class IncidentState(TypedDict, total=False):
     # graphe ne le reconnaît pas, et rien ne signale la perte.
     hypothesis: RootCauseHypothesis
 
+
+     # Produit par le nœud `verify`. Comme pour `hypothesis` en J1 : un
+    # champ absent de ce TypedDict est écarté par LangGraph sans erreur.
+    verification: VerificationReport
+
     # Journal d'exécution. Accumulé plutôt que remplacé : c'est ce qui
     # permet de lire une investigation a posteriori, et de mesurer la
     # latence par nœud.
@@ -177,3 +182,53 @@ class RootCauseHypothesis(BaseModel):
     # Conservé plutôt qu'écarté : une sortie partiellement récupérée
     # reste utilisable, et le champ dit au lecteur de s'en méfier.
     parse_warning: str = ""
+
+
+class VerifiedClaim(BaseModel):
+    """Verdict porté sur une preuve citée par le Root Cause Agent.
+
+    `status` prend trois valeurs, et la distinction entre les deux
+    premières est le point délicat :
+
+    - "verified"    : la source existe dans le contexte et les valeurs
+                      citées correspondent.
+    - "misquoted"   : la source existe, mais les valeurs citées ne
+                      correspondent pas à ce qui a été observé.
+    - "unsupported" : la source n'existe pas. C'est une hallucination au
+                      sens strict — le modèle a inventé une observation.
+
+    Un quatrième cas existe et n'est volontairement pas traité ici : une
+    preuve exacte mais sans rapport avec la cause avancée. Elle est
+    marquée "verified", parce que la vérification mesure l'existence
+    d'une observation, pas sa pertinence. Juger la pertinence demanderait
+    de raisonner, ce qui réintroduirait précisément ce qu'on vérifie.
+    """
+
+    source: str
+    status: str          # verified | misquoted | unsupported
+    detail: str = ""
+
+
+class VerificationReport(BaseModel):
+    """Résultat du contrôle, agrégé."""
+
+    claims: list[VerifiedClaim] = Field(default_factory=list)
+    unsupported_count: int = 0
+    misquoted_count: int = 0
+    # Les hypothèses écartées sont vérifiées séparément : elles citent
+    # souvent un signal resté normal, ce qui est une preuve d'un autre
+    # type.
+    ruled_out_unsupported: list[str] = Field(default_factory=list)
+
+    @property
+    def is_clean(self) -> bool:
+        return self.unsupported_count == 0 and self.misquoted_count == 0
+
+    def summary(self) -> str:
+        total = len(self.claims)
+        ok = sum(1 for c in self.claims if c.status == "verified")
+        return (
+            f"{ok}/{total} preuves vérifiées, "
+            f"{self.misquoted_count} mal citées, "
+            f"{self.unsupported_count} sans source"
+        )

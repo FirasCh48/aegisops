@@ -30,4 +30,4 @@ data/incidents/*
 data/campaign.log
 !data/corpus/sandbox/
 !data/corpus/sandbox/*.md
-data/checkpoints.sqlite
+data/checkpoints.sqlitedata/campaign_*.log

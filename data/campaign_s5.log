@@ -1,0 +1,254 @@
+nohup: ignoring input
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : connection_leak ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 6.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de connection_leak
+  [wait]  180s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-121842-connection_leak.json  (49 Ko)
+          baseline : {'order_created': 894}
+          incident : {'db_pool_timeout': 618, 'order_created': 33, 'connection_leaked': 10, 'fault_injected': 1}
+          recovery : {'fault_cleared': 1}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : connection_leak ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 6.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de connection_leak
+  [wait]  180s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-122610-connection_leak.json  (51 Ko)
+          baseline : {'order_created': 892}
+          incident : {'db_pool_timeout': 656, 'order_created': 31, 'connection_leaked': 10, 'dependency_error': 7, 'fault_injected': 1}
+          recovery : {'fault_cleared': 1}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : slow_response ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 6.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de slow_response
+  [wait]  180s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-123340-slow_response.json  (56 Ko)
+          baseline : {'order_created': 1352, 'service_started': 1}
+          incident : {'dependency_timeout': 876, 'dependency_error': 722, 'connection_leaked': 10, 'order_created': 1, 'fault_injected': 1}
+          recovery : {'dependency_error': 49}
+          ATTENTION : baseline polluée {'service_started': 1}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : slow_response ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 6.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de slow_response
+  [wait]  180s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-152938-slow_response.json  (34 Ko)
+          baseline : {'order_created': 627}
+          incident : {}
+          recovery : {}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : bad_release ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 6.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de bad_release
+  [wait]  180s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-153700-bad_release.json  (50 Ko)
+          baseline : {'order_created': 924}
+          incident : {'db_pool_timeout': 646, 'order_created': 42, 'connection_leaked': 10, 'fault_injected': 2, 'deployment': 1}
+          recovery : {'db_pool_timeout': 8, 'fault_cleared': 2, 'deployment': 1}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : bad_release ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 6.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de bad_release
+  [wait]  180s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-154443-bad_release.json  (53 Ko)
+          baseline : {'order_created': 918}
+          incident : {'db_pool_timeout': 678, 'order_created': 17, 'connection_leaked': 10, 'dependency_error': 3, 'fault_injected': 2, 'deployment': 1}
+          recovery : {'fault_cleared': 2}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : internal_error ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 6.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de internal_error
+  [wait]  180s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-155219-internal_error.json  (47 Ko)
+          baseline : {'order_created': 931}
+          incident : {'order_created': 371, 'dependency_error': 334}
+          recovery : {}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : internal_error ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 6.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de internal_error
+  [wait]  180s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-155950-internal_error.json  (46 Ko)
+          baseline : {'order_created': 891}
+          incident : {'order_created': 387, 'dependency_error': 354}
+          recovery : {}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : cpu_saturation ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 6.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de cpu_saturation
+  [wait]  180s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-160722-cpu_saturation.json  (41 Ko)
+          baseline : {'order_created': 856}
+          incident : {'order_created': 723, 'fault_injected': 1, 'fault_cleared': 1}
+          recovery : {}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : cpu_saturation ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 6.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de cpu_saturation
+  [wait]  180s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-161454-cpu_saturation.json  (43 Ko)
+          baseline : {'order_created': 882}
+          incident : {'order_created': 722, 'fault_injected': 1, 'fault_cleared': 1, 'dependency_error': 1}
+          recovery : {}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : memory_leak ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 4.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de memory_leak
+  [wait]  420s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-162227-memory_leak.json  (54 Ko)
+          baseline : {'order_created': 631}
+          incident : {'order_created': 878, 'fault_injected': 1}
+          recovery : {'fault_cleared': 1}
+  inventory-service arrêté
+  payment-service arrêté
+  checkout-service arrêté
+  inventory-service démarré sur :8003
+  payment-service démarré sur :8002
+  checkout-service démarré sur :8001
+
+=== capture : memory_leak ===
+  [boot]  redémarrage des services
+  [reset] stock inventory
+  [check] les trois services répondent
+  [load]  générateur à 4.0 req/s
+  [warm]  180s de trafic sain
+  [fault] injection de memory_leak
+  [wait]  420s d'observation
+  [fault] panne levée
+  [fetch] extraction des métriques et des logs
+  [done]  INC-20261019-163422-memory_leak.json  (53 Ko)
+          baseline : {'order_created': 580}
+          incident : {'order_created': 838, 'fault_injected': 1}
+          recovery : {'fault_cleared': 1}
