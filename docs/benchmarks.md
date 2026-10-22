@@ -797,3 +797,73 @@ et le parseur refusait — correctement — un JSON incomplet. Porté à 2 500.
 
 Le parseur a joué son rôle : un parseur permissif aurait produit un plan
 amputé sans que rien ne le signale.
+
+
+## Policy engine (S5-J4)
+
+Politique déclarative en YAML, appliquée au plan de remédiation. Aucun
+appel LLM : un garde-fou fondé sur un modèle pourrait être convaincu par
+un prompt bien tourné, celui-ci lit un fichier versionné dont
+l'historique montre qui a assoupli quoi, et quand.
+
+### Les règles ne peuvent que durcir
+
+Une action autorisée par son niveau de risque peut être bloquée par une
+règle ; l'inverse est impossible. L'asymétrie est encodée :
+
+```python
+SEVERITY = {"allow": 0, "require_approval": 1, "deny": 2}
+
+def _harden(current: str, proposed: str) -> str:
+    return proposed if SEVERITY[proposed] > SEVERITY[current] else current
+```
+
+Lire les niveaux suffit à connaître le plafond. Les règles ne peuvent que
+l'abaisser.
+
+### Quatre cas validés
+
+| Étape | Verdict | Règle déclenchée |
+| --- | --- | --- |
+| Consulter un tableau de bord, preuve vérifiée | `allow` | — |
+| Redémarrer, sans preuve citée | `deny` | `evidence_required` |
+| « Drop the stale connection table », annoncée `reversible` | `require_approval` | requalification par mot-clé |
+| Augmenter le pool, preuve rejetée en J2 | `deny` | `unverified_evidence` |
+
+Le quatrième cas boucle la chaîne : le modèle a cité
+`metric:gc_pause_seconds`, le vérificateur l'a marquée `unsupported`, et
+la politique refuse l'action qui s'en réclame.
+
+### Trois choix de conception
+
+**L'absence du fichier bloque tout.** Une politique manquante lève une
+erreur plutôt que d'autoriser par défaut — c'est le défaut le plus
+dangereux qu'un moteur de politique puisse avoir.
+
+**Un niveau de risque inconnu vaut `deny`.** Le planificateur a déjà
+ramené les valeurs non reconnues à `destructive` ; si une valeur
+inattendue survit jusqu'ici, elle ne doit pas passer.
+
+**Une condition inconnue lève.** Une politique écrite pour une version du
+moteur qui n'est pas celle en place doit se voir, pas s'ignorer en
+silence.
+
+### Sur un plan réel
+
+politique (v1) : 1 autorisée, 4 en attente d’approbation, 0 refusée
+
+
+Le classement produit enfin une étape `read_only` — le planificateur
+n'en émettait aucune avant l'ajustement du prompt en J3.
+
+### Limite
+
+La politique juge la **forme**, pas le **fond**. Une étape
+« temporairement augmenter la taille du pool », correctement classée
+`reversible` et correctement sourcée, passe en `require_approval` — alors
+que le postmortem du scénario avertit explicitement que cette action ne
+fait que repousser la saturation.
+
+Détecter cela demanderait de comprendre la remédiation, donc de
+raisonner, donc de réintroduire ce qu'on contrôle. C'est la même limite
+qu'en J2 avec les preuves hors sujet.

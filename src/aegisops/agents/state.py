@@ -142,6 +142,12 @@ class IncidentState(TypedDict, total=False):
     # dans build_graph existe pour cette raison.
     policy: PolicyReport
 
+# Produit par le nœud `approval`. Déclaré avant la première
+    # exécution, cette fois : le contrôle de build_graph refuse de
+    # construire le graphe sans lui.
+    approval: ApprovalOutcome
+
+    
     # Produit par le nœud `analyse`. Un champ absent de ce TypedDict est
     # silencieusement écarté par LangGraph : le nœud le renvoie, le
     # graphe ne le reconnaît pas, et rien ne signale la perte.
@@ -322,3 +328,35 @@ class PolicyReport(BaseModel):
             f"{len(self.pending)} en attente d'approbation, "
             f"{len(self.denied)} refusées"
         )
+
+
+class ApprovalRequest(BaseModel):
+    """Ce qu'un humain doit lire avant de décider.
+
+    Volontairement réduit : l'action, son risque, la cause qui la motive
+    et les preuves qui l'étayent. Une personne d'astreinte réveillée à
+    trois heures du matin ne lit pas un rapport de quarante lignes — et
+    si elle doit le lire pour décider, l'agent a mal fait son travail.
+    """
+
+    incident_id: str
+    root_cause: str
+    confidence: float
+    pending: list[PolicyDecision] = Field(default_factory=list)
+    allowed: list[PolicyDecision] = Field(default_factory=list)
+    denied: list[PolicyDecision] = Field(default_factory=list)
+
+
+class ApprovalOutcome(BaseModel):
+    """Décision rendue par l'humain.
+
+    `approved_orders` liste les étapes retenues. Approuver globalement
+    n'est pas proposé : si quatre actions attendent, c'est que chacune
+    mérite un examen distinct — sinon elles n'auraient pas dû être
+    séparées.
+    """
+
+    decided_by: str = "unknown"
+    approved_orders: list[int] = Field(default_factory=list)
+    rejected_orders: list[int] = Field(default_factory=list)
+    comment: str = ""

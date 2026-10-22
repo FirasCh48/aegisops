@@ -1,10 +1,8 @@
 """Graphe d'investigation : assemblage des nœuds et de l'état.
 
-Sept nœuds. Les six premiers observent et rassemblent sans conclure ; le
-septième raisonne. Cette séparation garantit que chaque affirmation du
-rapport pourra être rattachée à une observation vérifiable — c'est la
-condition pour que le Verification Agent de J2 puisse rejeter ce qui ne
-l'est pas.
+Dix nœuds. Les six premiers observent et rassemblent sans conclure, le
+septième raisonne, les trois derniers contrôlent : vérification des
+preuves, politique d'exécution, approbation humaine.
 
 Les nœuds sont produits par des fabriques qui reçoivent les clients à
 utiliser. Cette indirection existe pour une raison précise : la rétention
@@ -24,9 +22,7 @@ from pathlib import Path
 from typing import Callable
 
 # LangGraph sérialise l'état en msgpack et refuse de désérialiser les
-# types définis hors de ses modules connus. Aujourd'hui c'est un
-# avertissement ; la documentation annonce un blocage, qui rendrait
-# illisibles les checkpoints déjà écrits.
+# types définis hors de ses modules connus.
 #
 # La variable d'environnement doit être posée avant l'import de
 # langgraph : le sérialiseur la lit à l'initialisation du module.
@@ -35,6 +31,7 @@ os.environ.setdefault(
 )
 
 from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: E402
+from langgraph.errors import GraphInterrupt  # noqa: E402
 from langgraph.graph import END, START, StateGraph  # noqa: E402
 
 from aegisops.agents.state import (  # noqa: E402
@@ -46,21 +43,42 @@ from aegisops.agents.state import (  # noqa: E402
 ROOT = Path(__file__).resolve().parents[3]
 CHECKPOINT_DB = ROOT / "data" / "checkpoints.sqlite"
 
-# Les types Pydantic que le graphe fait transiter par l'état.
-ALLOWED_MSGPACK_MODULES = [
-    ("aegisops.agents.state", "Alert"),
-    ("aegisops.agents.state", "TimeWindow"),
-    ("aegisops.agents.state", "MetricObservation"),
-    ("aegisops.agents.state", "LogObservation"),
-    ("aegisops.agents.state", "RetrievedPassage"),
-    ("aegisops.agents.state", "IncidentContext"),
-    ("aegisops.agents.state", "Evidence"),
-    ("aegisops.agents.state", "RootCauseHypothesis"),
-    ("aegisops.agents.state", "VerifiedClaim"),
-    ("aegisops.agents.state", "VerificationReport"),
-    ("aegisops.agents.state", "RemediationStep"),
-    ("aegisops.agents.state", "RemediationPlan"),
-]
+
+def _allowed_msgpack_modules() -> list[tuple[str, str]]:
+    """Déclare tous les modèles Pydantic de `state.py`.
+
+    Dérivée du module plutôt que maintenue à la main.
+
+    La liste écrite à la main avait été oubliée trois fois en deux
+    sessions, et l'oubli ne se voit pas à l'écriture : la sérialisation
+    réussit. C'est à la **relecture** d'un checkpoint que LangGraph
+    refuse de désérialiser le type et renvoie un dictionnaire brut —
+    l'appelant reçoit alors un `dict` là où il attend un modèle, et
+    échoue sur le premier accès à une méthode.
+
+    Le décalage entre la faute et son symptôme est ce qui rend cette
+    erreur coûteuse : elle se manifeste dans l'API, pas dans le graphe.
+    """
+    from pydantic import BaseModel
+
+    from aegisops.agents import state as state_module
+
+    return [
+        ("aegisops.agents.state", name)
+        for name, obj in inspect.getmembers(state_module, inspect.isclass)
+        if issubclass(obj, BaseModel) and obj is not BaseModel
+    ]
+
+
+ALLOWED_MSGPACK_MODULES = _allowed_msgpack_modules()
+
+# Champs produits par les nœuds. Chacun doit être déclaré dans
+# `IncidentState` : LangGraph écarte sans erreur ce qu'il ne connaît pas,
+# et le nœud s'exécute pour rien.
+PRODUCED_FIELDS = {
+    "window", "metrics", "logs", "search_query", "passages", "context",
+    "hypothesis", "verification", "plan", "policy", "approval",
+}
 
 
 def make_checkpointer(conn: sqlite3.Connection) -> SqliteSaver:
@@ -95,6 +113,12 @@ def timed(name: str, fn: Callable[[IncidentState], dict]) -> Callable:
     produire un rapport à partir des logs, en le signalant. C'est le
     comportement attendu d'un système d'astreinte — une panne partielle
     vaut mieux qu'un silence.
+
+    `GraphInterrupt` fait exception et doit remonter intacte. Ce n'est
+    pas une erreur : c'est le mécanisme par lequel `interrupt()` suspend
+    le graphe. L'attraper comme une panne de nœud la transformerait en
+    échec silencieux — le graphe poursuivrait, et l'approbation humaine
+    n'aurait jamais lieu.
     """
 
     def wrapper(state: IncidentState) -> dict:
@@ -109,6 +133,10 @@ def timed(name: str, fn: Callable[[IncidentState], dict]) -> Callable:
                     {"node": name, "ms": round(elapsed * 1000, 1), "status": "ok"},
                 ],
             }
+        except GraphInterrupt:
+            # Signal de contrôle, pas erreur. LangGraph doit la recevoir
+            # pour sérialiser l'état et rendre la main à l'appelant.
+            raise
         except Exception as e:
             elapsed = time.perf_counter() - start
             return {
@@ -191,9 +219,6 @@ def _retrieve(clients: dict):
     corrigé, il domine le dense et l'hybride sur les deux jeux
     d'évaluation (92,3 % contre 69,2 % et 80,8 %), pour 2,6 ms contre
     110 et 164 ms.
-
-    L'index est local et déterministe : aucun client à injecter, le rejeu
-    l'utilise tel quel.
     """
 
     def node(state: IncidentState) -> dict:
@@ -258,6 +283,9 @@ def _analyse(clients: dict):
 
     return node
 
+
+# --- Nœuds de contrôle ---------------------------------------------------
+
 def _verify(clients: dict):
     """Contrôle les preuves citées contre les observations collectées.
 
@@ -277,8 +305,7 @@ def _plan(clients: dict):
     """Propose un plan de remédiation à partir de l'hypothèse vérifiée.
 
     Ne reçoit que les preuves que le vérificateur a validées : fonder
-    une action sur une preuve rejetée reviendrait à contourner le
-    contrôle.
+    une action sur une preuve rejetée contournerait le contrôle.
     """
 
     def node(state: IncidentState) -> dict:
@@ -292,8 +319,8 @@ def _plan(clients: dict):
 def _policy(clients: dict):
     """Applique la politique déclarative au plan proposé.
 
-    Dernier contrôle avant qu'un plan n'atteigne un humain. Aucun appel
-    LLM : un garde-fou fondé sur un modèle pourrait être convaincu.
+    Aucun appel LLM : un garde-fou fondé sur un modèle pourrait être
+    convaincu par un prompt bien tourné.
     """
 
     def node(state: IncidentState) -> dict:
@@ -302,6 +329,22 @@ def _policy(clients: dict):
         return apply_policy(state)
 
     return node
+
+
+def _approval(clients: dict):
+    """Suspend le graphe tant qu'une étape attend une validation.
+
+    Seul nœud qui ne produit pas un résultat mais un arrêt.
+    """
+
+    def node(state: IncidentState) -> dict:
+        from aegisops.agents.approval import request_approval
+
+        return request_approval(state)
+
+    return node
+
+
 # --- Assemblage ----------------------------------------------------------
 
 def build_graph(checkpointer=None, clients: dict | None = None):
@@ -309,22 +352,12 @@ def build_graph(checkpointer=None, clients: dict | None = None):
 
     `clients` accepte les clés "prometheus" et "loki". Absentes, chaque
     agent instancie son client réel.
-
-    Les nœuds métriques et logs sont indépendants et pourront être
-    parallélisés — mais tant que leurs durées ne sont pas mesurées, le
-    faire serait optimiser à l'aveugle. Depuis l'ajout du nœud `analyse`,
-    la question se pose moins : un appel LLM pèse des secondes, les deux
-    nœuds d'observation quelques dizaines de millisecondes.
     """
-        # Un champ renvoyé par un nœud mais absent de IncidentState est
-    # silencieusement écarté par LangGraph. L'erreur est passée deux fois
-    # (hypothesis en J1, verification en J2) et ne se voit qu'à
-    # l'affichage, plusieurs minutes plus tard.
-    declared = set(IncidentState.__annotations__)
-    expected = {"alert", "window", "metrics", "logs", "search_query",
-                "passages", "context", "hypothesis", "verification",
-                "trace", "errors","plan"}
-    missing = expected - declared
+    # Un champ renvoyé par un nœud mais absent de IncidentState est
+    # silencieusement écarté par LangGraph. L'erreur est passée trois
+    # fois — hypothesis en J1, verification en J2, policy en J4 — et ne
+    # se voit qu'à l'affichage, plusieurs minutes plus tard.
+    missing = PRODUCED_FIELDS - set(IncidentState.__annotations__)
     if missing:
         raise RuntimeError(
             f"champs absents de IncidentState : {sorted(missing)} — "
@@ -334,8 +367,6 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     clients = clients or {}
     graph = StateGraph(IncidentState)
 
-
-    graph.add_node("verify", timed("verify", _verify(clients)))
     graph.add_node("detect", timed("detect", _detect(clients)))
     graph.add_node("metrics", timed("metrics", _metrics(clients)))
     graph.add_node("logs", timed("logs", _logs(clients)))
@@ -343,8 +374,10 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     graph.add_node("retrieve", timed("retrieve", _retrieve(clients)))
     graph.add_node("assemble", timed("assemble", _assemble(clients)))
     graph.add_node("analyse", timed("analyse", _analyse(clients)))
+    graph.add_node("verify", timed("verify", _verify(clients)))
     graph.add_node("plan", timed("plan", _plan(clients)))
     graph.add_node("policy", timed("policy", _policy(clients)))
+    graph.add_node("approval", timed("approval", _approval(clients)))
 
     graph.add_edge(START, "detect")
     graph.add_edge("detect", "metrics")
@@ -356,7 +389,8 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     graph.add_edge("analyse", "verify")
     graph.add_edge("verify", "plan")
     graph.add_edge("plan", "policy")
-    graph.add_edge("policy", END)
+    graph.add_edge("policy", "approval")
+    graph.add_edge("approval", END)
 
     return graph.compile(checkpointer=checkpointer)
 
@@ -369,10 +403,10 @@ def investigate(
     """Point d'entrée. Chaque exécution est un thread distinct.
 
     Le checkpointer enregistre l'état après chaque nœud. Depuis l'ajout
-    du nœud `analyse`, une investigation dure plusieurs secondes avec un
-    fournisseur distant et plusieurs minutes en local : pouvoir reprendre
-    après le nœud qui a échoué, plutôt que tout relancer, change le coût
-    d'une itération de développement.
+    du nœud `approval`, cette persistance est devenue structurelle et non
+    plus confortable : le graphe s'arrête réellement, et sa reprise se
+    fait depuis la base — éventuellement dans un autre processus, des
+    heures plus tard.
     """
     CHECKPOINT_DB.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(CHECKPOINT_DB, check_same_thread=False)
@@ -416,7 +450,8 @@ def replay(incident_path: str, thread_id: str | None = None) -> IncidentState:
         alert,
         # Horodaté : rejouer le même incident deux fois dans le même
         # thread ferait s'accumuler les traces, le réducteur `append`
-        # ajoutant les nouvelles étapes aux anciennes.
+        # ajoutant les nouvelles étapes aux anciennes. Et un thread déjà
+        # terminé ne réexécuterait rien.
         thread_id=thread_id or f"replay-{record['incident_id']}-{time.time():.0f}",
         clients={
             "prometheus": ReplayPrometheus(incident_path),
@@ -459,25 +494,26 @@ def main() -> None:
         for err in result["errors"]:
             print(f"  {err}")
 
-    context = result["context"]
-    print(f"\ncontexte : {context.summary()}")
-    print(f"  fenêtre : {context.window.start.strftime('%H:%M:%S')} -> "
-          f"{context.window.end.strftime('%H:%M:%S')}")
-    print(f"  raison  : {context.window.reason}")
+    context = result.get("context")
+    if context:
+        print(f"\ncontexte : {context.summary()}")
+        print(f"  fenêtre : {context.window.start.strftime('%H:%M:%S')} -> "
+              f"{context.window.end.strftime('%H:%M:%S')}")
+        print(f"  raison  : {context.window.reason}")
 
-    anomalies = [m for m in context.metrics if m.anomalous]
-    if anomalies:
-        print(f"\nmétriques anormales ({len(anomalies)}/{len(context.metrics)}) :")
-        for o in sorted(anomalies, key=lambda x: -(x.ratio or float("inf"))):
-            dep = o.labels.get("dependency") or o.labels.get("reason") or ""
-            tag = f"[{dep}]" if dep else ""
-            ratio = f"×{o.ratio}" if o.ratio else "depuis 0"
-            print(f"  {o.metric}{tag:<24} {o.baseline} -> {o.peak}  ({ratio})")
+        anomalies = [m for m in context.metrics if m.anomalous]
+        if anomalies:
+            print(f"\nmétriques anormales ({len(anomalies)}/{len(context.metrics)}) :")
+            for o in sorted(anomalies, key=lambda x: -(x.ratio or float("inf"))):
+                dep = o.labels.get("dependency") or o.labels.get("reason") or ""
+                tag = f"[{dep}]" if dep else ""
+                ratio = f"×{o.ratio}" if o.ratio else "depuis 0"
+                print(f"  {o.metric}{tag:<24} {o.baseline} -> {o.peak}  ({ratio})")
 
-    if context.passages:
-        print("\npassages :")
-        for p in context.passages:
-            print(f"  {p.score:>7.2f}  {p.chunk_id}")
+        if context.passages:
+            print("\npassages :")
+            for p in context.passages:
+                print(f"  {p.score:>7.2f}  {p.chunk_id}")
 
     hypothesis = result.get("hypothesis")
     if hypothesis:
@@ -494,18 +530,18 @@ def main() -> None:
             for x in hypothesis.ruled_out:
                 print(f"    {x}")
 
-
     verification = result.get("verification")
-    if verification:
+    if verification and verification.claims:
         print(f"\nvérification : {verification.summary()}")
         for c in verification.claims:
-            mark = {"verified": "ok ", "misquoted": "!! ", "unsupported": "XX "}[c.status]
+            mark = {"verified": "ok ", "misquoted": "!! ",
+                    "unsupported": "XX "}[c.status]
             print(f"  {mark} {c.source:<36} {c.detail}")
         for r in verification.ruled_out_unsupported:
             print(f"  XX  hypothèse écartée sans source : {r[:70]}")
 
     remediation = result.get("plan")
-    if remediation:
+    if remediation and remediation.steps:
         print(f"\nplan : {remediation.summary()}")
         if remediation.parse_warning:
             print(f"  avertissement : {remediation.parse_warning}")
@@ -524,10 +560,16 @@ def main() -> None:
     if policy and policy.decisions:
         print(f"\npolitique (v{policy.policy_version}) : {policy.summary()}")
         for d in policy.decisions:
-            mark = {"allow": "   ", "require_approval": ">> ", "deny": "XX "}[d.decision]
+            mark = {"allow": "   ", "require_approval": ">> ",
+                    "deny": "XX "}[d.decision]
             print(f"  {mark}{d.order}. [{d.risk}] {d.action[:64]}")
             for r in d.reasons:
                 print(f"       {r}")
+
+    if "__interrupt__" in result:
+        print("\n>> graphe suspendu : approbation humaine requise")
+        print("   reprendre via POST /incidents/{id}/approve")
+
 
 if __name__ == "__main__":
     main()
