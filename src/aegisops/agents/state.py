@@ -135,6 +135,7 @@ class IncidentState(TypedDict, total=False):
     search_query: str
     passages: list[RetrievedPassage]
     context: IncidentContext
+    plan: RemediationPlan
 
     # Produit par le nœud `analyse`. Un champ absent de ce TypedDict est
     # silencieusement écarté par LangGraph : le nœud le renvoie, le
@@ -231,4 +232,55 @@ class VerificationReport(BaseModel):
             f"{ok}/{total} preuves vérifiées, "
             f"{self.misquoted_count} mal citées, "
             f"{self.unsupported_count} sans source"
+        )
+
+class RemediationStep(BaseModel):
+    """Une action proposée, avec son niveau de risque.
+
+    Volontairement dépourvue de champ exécutable. Il n'y a pas de
+    `command`, pas de `script`, pas d'`endpoint` : une étape est une
+    description destinée à un humain, et l'ajout d'un champ exécutable
+    demanderait d'écrire le code qui l'interprète — décision qui doit
+    être prise sciemment, pas héritée d'un modèle de données.
+
+    `risk` conditionne le traitement en J4 :
+
+    - `read_only`    : observation, aucun effet. Consulter un tableau de
+                       bord, lire un log, exécuter un profil CPU.
+    - `reversible`   : modifie l'état mais se défait. Redémarrer un
+                       service, revenir à une version précédente,
+                       ajuster une limite.
+    - `destructive`  : perte de données ou effet non réversible.
+                       Supprimer, purger, basculer un trafic sans retour.
+    """
+
+    order: int
+    action: str
+    risk: str                    # read_only | reversible | destructive
+    rationale: str = ""
+    # Quelle preuve de l'hypothèse justifie cette étape. Une action sans
+    # preuve rattachée sera rejetée par le policy engine en J4.
+    based_on: list[str] = Field(default_factory=list)
+
+
+class RemediationPlan(BaseModel):
+    steps: list[RemediationStep] = Field(default_factory=list)
+    # Ce que le plan ne traite pas. Un planificateur qui prétend tout
+    # couvrir est plus dangereux qu'un qui nomme ses angles morts.
+    not_addressed: str = ""
+    parse_warning: str = ""
+
+    def by_risk(self, level: str) -> list[RemediationStep]:
+        return [s for s in self.steps if s.risk == level]
+
+    def summary(self) -> str:
+        counts = {
+            level: len(self.by_risk(level))
+            for level in ("read_only", "reversible", "destructive")
+        }
+        return (
+            f"{len(self.steps)} étapes : "
+            f"{counts['read_only']} lecture seule, "
+            f"{counts['reversible']} réversibles, "
+            f"{counts['destructive']} destructives"
         )

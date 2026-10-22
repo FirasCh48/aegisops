@@ -32,14 +32,30 @@ from aegisops.agents.state import (
 # collecteur : metric:p95_by_dependency[payment-service].
 SOURCE_RE = re.compile(r"^(metric|log):([A-Za-z0-9_.]+)(?:\[([^\]]+)\])?")
 
-# Les nombres cités dans le texte d'une preuve, pour les confronter aux
-# valeurs observées.
 NUMBER_RE = re.compile(r"-?\d+\.?\d*")
+
+# Les qualificatifs sont retirés avant l'extraction des nombres. Un
+# `version=v2.7`, un `pool_size=10` ou un `status=409` est du contexte
+# que le modèle reprend du log, pas une mesure qu'il prétend citer.
+#
+# Mesuré : « 10 leak events (version=v2.7, pool_size=10) » était marqué
+# `misquoted` parce que 2.7 ne figure dans aucune série — une accusation
+# fausse portée contre une preuve exacte.
+QUALIFIER_RE = re.compile(
+    r"\b(?:version|pool_size|status|timeout_s|port|code|severity)"
+    r"\s*[=:]\s*v?[\w.]+",
+    re.IGNORECASE,
+)
 
 # Tolérance relative sur les valeurs citées. Un modèle qui écrit 0,778
 # pour 0,7782 ne ment pas ; un qui écrit 0,9 ment. Le seuil est large
 # parce qu'on cherche la fabrication, pas l'imprécision.
 VALUE_TOLERANCE = 0.05
+
+
+def _cited_numbers(text: str) -> list[float]:
+    """Extrait les valeurs qui prétendent citer une mesure."""
+    return [float(n) for n in NUMBER_RE.findall(QUALIFIER_RE.sub("", text))]
 
 
 def _known_sources(context: IncidentContext) -> dict[str, list[float]]:
@@ -67,6 +83,13 @@ def _known_sources(context: IncidentContext) -> dict[str, list[float]]:
     for o in context.logs:
         index.setdefault(f"log:{o.event}", []).append(float(o.count))
         index.setdefault(f"log:{o.service}:{o.event}", []).append(float(o.count))
+        # Les valeurs des champs qualifiants d'un log sont citables : un
+        # modèle qui écrit « pool_size=10 » reprend une donnée réelle.
+        for value in o.sample.values():
+            try:
+                index[f"log:{o.event}"].append(float(value))
+            except (TypeError, ValueError):
+                continue
 
     return index
 
@@ -118,7 +141,7 @@ class Verifier:
                 ))
                 continue
 
-            cited = [float(n) for n in NUMBER_RE.findall(evidence.observation)]
+            cited = _cited_numbers(evidence.observation)
             if cited and not _values_match(cited, observed):
                 claims.append(VerifiedClaim(
                     source=evidence.source,
@@ -131,11 +154,17 @@ class Verifier:
 
         # Les hypothèses écartées sont du texte libre : on ne peut pas
         # leur appliquer le même contrôle. On vérifie seulement qu'elles
-        # mentionnent au moins un nom d'observation connu — une
-        # justification qui n'en cite aucun est invérifiable, ce qui est
-        # exactement le cas observé en J1 avec « db_pool_usage did not
-        # stay at a constant 1.0 » : le nom existe, mais l'affirmation
-        # porte sur un comportement qu'aucune observation ne décrit.
+        # mentionnent au moins un nom d'observation connu.
+        #
+        # Ce contrôle s'arrête à la présence du nom. Il laisse passer une
+        # justification dont le nom est correct mais dont l'affirmation
+        # ne l'est pas — observé : « db_pool_usage did not stay at 1.0 »
+        # cite une observation réelle, mais ce n'est pas le critère qui
+        # sépare bad_release d'une fuite préexistante (c'est l'absence
+        # d'événement `deployment`).
+        #
+        # Aller plus loin demanderait d'interpréter l'affirmation, donc
+        # de raisonner — et de réintroduire le modèle qu'on contrôle.
         names = {k.split(":", 1)[1].split("[")[0] for k in index}
         unsupported_rules = [
             text for text in hypothesis.ruled_out

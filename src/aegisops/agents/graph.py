@@ -58,6 +58,8 @@ ALLOWED_MSGPACK_MODULES = [
     ("aegisops.agents.state", "RootCauseHypothesis"),
     ("aegisops.agents.state", "VerifiedClaim"),
     ("aegisops.agents.state", "VerificationReport"),
+    ("aegisops.agents.state", "RemediationStep"),
+    ("aegisops.agents.state", "RemediationPlan"),
 ]
 
 
@@ -269,6 +271,22 @@ def _verify(clients: dict):
         return verify(state)
 
     return node
+
+
+def _plan(clients: dict):
+    """Propose un plan de remédiation à partir de l'hypothèse vérifiée.
+
+    Ne reçoit que les preuves que le vérificateur a validées : fonder
+    une action sur une preuve rejetée reviendrait à contourner le
+    contrôle.
+    """
+
+    def node(state: IncidentState) -> dict:
+        from aegisops.agents.planner import plan
+
+        return plan(state)
+
+    return node
 # --- Assemblage ----------------------------------------------------------
 
 def build_graph(checkpointer=None, clients: dict | None = None):
@@ -290,7 +308,7 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     declared = set(IncidentState.__annotations__)
     expected = {"alert", "window", "metrics", "logs", "search_query",
                 "passages", "context", "hypothesis", "verification",
-                "trace", "errors"}
+                "trace", "errors","plan"}
     missing = expected - declared
     if missing:
         raise RuntimeError(
@@ -310,6 +328,7 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     graph.add_node("retrieve", timed("retrieve", _retrieve(clients)))
     graph.add_node("assemble", timed("assemble", _assemble(clients)))
     graph.add_node("analyse", timed("analyse", _analyse(clients)))
+    graph.add_node("plan", timed("plan", _plan(clients)))
 
     graph.add_edge(START, "detect")
     graph.add_edge("detect", "metrics")
@@ -319,7 +338,8 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     graph.add_edge("retrieve", "assemble")
     graph.add_edge("assemble", "analyse")
     graph.add_edge("analyse", "verify")
-    graph.add_edge("verify", END)
+    graph.add_edge("verify", "plan")
+    graph.add_edge("plan", END)
 
     return graph.compile(checkpointer=checkpointer)
 
@@ -458,7 +478,7 @@ def main() -> None:
                 print(f"    {x}")
 
 
-        verification = result.get("verification")
+    verification = result.get("verification")
     if verification:
         print(f"\nvérification : {verification.summary()}")
         for c in verification.claims:
@@ -466,6 +486,22 @@ def main() -> None:
             print(f"  {mark} {c.source:<36} {c.detail}")
         for r in verification.ruled_out_unsupported:
             print(f"  XX  hypothèse écartée sans source : {r[:70]}")
+
+    remediation = result.get("plan")
+    if remediation:
+        print(f"\nplan : {remediation.summary()}")
+        if remediation.parse_warning:
+            print(f"  avertissement : {remediation.parse_warning}")
+        for s in remediation.steps:
+            badge = {"read_only": "[lecture]", "reversible": "[réversible]",
+                     "destructive": "[DESTRUCTIF]"}[s.risk]
+            print(f"\n  {s.order}. {badge} {s.action}")
+            if s.rationale:
+                print(f"     {s.rationale}")
+            if s.based_on:
+                print(f"     fondé sur : {', '.join(s.based_on)}")
+        if remediation.not_addressed:
+            print(f"\n  non traité : {remediation.not_addressed}")
 
 if __name__ == "__main__":
     main()

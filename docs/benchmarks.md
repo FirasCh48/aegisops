@@ -701,3 +701,51 @@ dont 5 précèdent la saturation, un pool épuisé plafonne à 0,72.
 Le seuil est ramené à 0,5, l'écart minimal restant à 0,3. C'est l'écart
 qui porte le signal — passer de 0 % à 70 % de temps au plafond est un
 changement de régime, quelle que soit la part de fenêtre saine incluse.
+
+
+
+## Verification Agent (S5-J2)
+
+Contrôle déterministe des preuves citées par le Root Cause Agent. Aucun
+appel LLM : la vérification doit donner le même verdict à chaque
+exécution, et un modèle contrôlant un autre introduirait une circularité
+— en S6 les deux seront le même modèle affiné.
+
+### Trois verdicts
+
+| Statut | Condition | Exemple testé |
+| --- | --- | --- |
+| `verified` | la source existe, les valeurs correspondent | `metric:db_pool_usage` → 0.778 |
+| `misquoted` | la source existe, les valeurs non | `log:db_pool_timeout` → 9999 au lieu de 777 |
+| `unsupported` | la source n'existe pas | `metric:gc_pause_seconds` |
+
+Validé sur un rapport fabriqué contenant les trois cas : 1 vérifiée,
+1 mal citée, 1 sans source.
+
+### Sur un rapport réel
+5/5 preuves vérifiées, 0 mal citées, 0 sans source
+
+
+Le Root Cause Agent, alimenté par un contexte structuré, ne fabrique pas
+de sources. Ce résultat qualifie le prompt autant que le vérificateur.
+
+### Deux limites assumées
+
+**La pertinence n'est pas vérifiée.** Une preuve exacte mais sans rapport
+avec la cause avancée est marquée `verified`. Observé : le modèle cite
+`log:dependency_error ×19` à l'appui d'une fuite de connexions — ces
+erreurs viennent de l'épuisement du stock, effet de bord des captures
+longues. L'observation existe, le lien n'existe pas.
+
+Juger la pertinence demanderait de raisonner, ce qui réintroduirait
+exactement ce qu'on contrôle.
+
+**Les hypothèses écartées ne sont vérifiées qu'à la présence d'un nom.**
+Observé : « db_pool_usage did not stay at 1.0 » cite une observation
+réelle, mais ce n'est pas le critère qui sépare `bad_release` d'une fuite
+préexistante — c'est l'absence d'événement `deployment`, que le modèle
+mentionne par ailleurs dans la même phrase.
+
+Le contrôle laisse donc passer une justification correctement sourcée et
+mal raisonnée.
+ 
