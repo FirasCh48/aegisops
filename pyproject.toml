@@ -26,6 +26,7 @@ dependencies = [
     "pydantic-settings>=2.15.0",
     "pystemmer>=3.1.0",
     "python-dotenv>=1.2.3",
+    "pyyaml>=6.0.3",
     "qdrant-client>=1.19.1",
     "sqlalchemy>=2.0.52",
     "structlog>=26.1.0",

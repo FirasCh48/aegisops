@@ -749,3 +749,51 @@ mentionne par ailleurs dans la même phrase.
 Le contrôle laisse donc passer une justification correctement sourcée et
 mal raisonnée.
  
+
+## Remediation Planner (S5-J3)
+
+Produit un plan ordonné à partir de l'hypothèse **vérifiée** : seules les
+preuves que le vérificateur a validées sont transmises au prompt. Fonder
+une action sur une preuve rejetée contournerait le contrôle de J2.
+
+### Trois niveaux de risque
+
+`read_only` / `reversible` / `destructive`. C'est le seul critère dont
+disposera le policy engine en J4.
+
+Un niveau non reconnu est ramené à `destructive`, pas ignoré : une étape
+que le modèle n'a pas su classer doit passer par l'approbation humaine,
+pas la contourner par défaut.
+
+### Résultat sur `connection_leak`
+5 étapes : 0 lecture seule, 5 réversibles, 0 destructives
+
+Le contenu suit la structure des postmortems — arrêter l'incident,
+corriger la cause, prévenir la récurrence — et la section
+`not_addressed` nomme ce que le plan laisse de côté.
+
+**Mais les cinq étapes sont classées au même niveau.** Le modèle n'émet
+aucune étape `read_only`, alors que « identifier le chemin de code qui
+n'appelle pas close() » en est une. Le classement existe sans
+discriminer, ce qui réduit l'intérêt du garde-fou de J4.
+
+À mesurer en J6 : la distribution des niveaux sur les six scénarios. Si
+tout reste `reversible`, le prompt est à revoir.
+
+### Deux corrections de cette session
+
+**Le vérificateur accusait à tort.** « 10 leak events (version=v2.7,
+pool_size=10) » était marqué `misquoted` parce que 2.7 ne figure dans
+aucune série. Les qualificatifs — `version=`, `pool_size=`, `status=` —
+sont désormais retirés avant l'extraction des nombres, et les valeurs des
+champs d'un log deviennent citables.
+
+Résultat : 7/7 preuves vérifiées contre 4/6 auparavant, sur un rapport
+dont aucune preuve n'était en réalité fautive.
+
+**Le plan était tronqué.** 1 200 tokens ne suffisent pas à cinq étapes
+avec justification et sources ; la sortie s'arrêtait en milieu de phrase
+et le parseur refusait — correctement — un JSON incomplet. Porté à 2 500.
+
+Le parseur a joué son rôle : un parseur permissif aurait produit un plan
+amputé sans que rien ne le signale.

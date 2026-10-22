@@ -137,6 +137,11 @@ class IncidentState(TypedDict, total=False):
     context: IncidentContext
     plan: RemediationPlan
 
+    # Produit par le nœud `policy`. Troisième fois que ce champ est
+    # oublié (hypothesis en J1, verification en J2) : le contrôle ajouté
+    # dans build_graph existe pour cette raison.
+    policy: PolicyReport
+
     # Produit par le nœud `analyse`. Un champ absent de ce TypedDict est
     # silencieusement écarté par LangGraph : le nœud le renvoie, le
     # graphe ne le reconnaît pas, et rien ne signale la perte.
@@ -283,4 +288,37 @@ class RemediationPlan(BaseModel):
             f"{counts['read_only']} lecture seule, "
             f"{counts['reversible']} réversibles, "
             f"{counts['destructive']} destructives"
+        )
+
+class PolicyDecision(BaseModel):
+    """Verdict rendu sur une étape du plan."""
+
+    order: int
+    action: str
+    risk: str
+    decision: str              # allow | require_approval | deny
+    reasons: list[str] = Field(default_factory=list)
+
+
+class PolicyReport(BaseModel):
+    decisions: list[PolicyDecision] = Field(default_factory=list)
+    policy_version: int = 0
+
+    @property
+    def allowed(self) -> list[PolicyDecision]:
+        return [d for d in self.decisions if d.decision == "allow"]
+
+    @property
+    def pending(self) -> list[PolicyDecision]:
+        return [d for d in self.decisions if d.decision == "require_approval"]
+
+    @property
+    def denied(self) -> list[PolicyDecision]:
+        return [d for d in self.decisions if d.decision == "deny"]
+
+    def summary(self) -> str:
+        return (
+            f"{len(self.allowed)} autorisées, "
+            f"{len(self.pending)} en attente d'approbation, "
+            f"{len(self.denied)} refusées"
         )

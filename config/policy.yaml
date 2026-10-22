@@ -1,0 +1,77 @@
+# Politique d'exécution des plans de remédiation.
+#
+# Ce fichier est délibérément hors du code : une règle de sécurité doit
+# pouvoir être lue et modifiée par quelqu'un qui ne lit pas Python, et
+# son historique Git doit montrer qui a assoupli quoi, et quand.
+#
+# Le moteur qui l'applique ne raisonne pas. Il compare le niveau de
+# risque déclaré par le planificateur aux seuils ci-dessous. Un garde-fou
+# fondé sur un modèle pourrait être convaincu ; celui-ci ne peut pas.
+
+version: 1
+
+# Décision par niveau de risque.
+#
+#   allow           : l'action peut être présentée comme exécutable
+#   require_approval: l'action attend une validation humaine
+#   deny            : l'action n'est pas proposée du tout
+risk_levels:
+  read_only: allow
+  reversible: require_approval
+  destructive: require_approval
+
+# Règles transversales, appliquées après le niveau de risque. Chacune
+# peut durcir une décision, jamais l'assouplir : une action autorisée par
+# son niveau peut être bloquée par une règle, l'inverse est impossible.
+rules:
+  - id: evidence_required
+    description: >
+      Toute action doit citer au moins une preuve vérifiée. Une étape
+      sans source est une recommandation sans fondement observable.
+    applies_to: [reversible, destructive]
+    condition: based_on_empty
+    decision: deny
+
+  - id: unverified_evidence
+    description: >
+      Une action fondée uniquement sur des preuves que le vérificateur a
+      rejetées ne doit pas être proposée. C'est le cas que le nœud de
+      vérification existe pour attraper.
+    applies_to: [read_only, reversible, destructive]
+    condition: no_verified_evidence
+    decision: deny
+
+  - id: low_confidence
+    description: >
+      En dessous de ce seuil de confiance, aucune action modifiant
+      l'état n'est proposée sans approbation, même réversible. Le seuil
+      est bas : un modèle sûr de lui et faux existe, et la confiance
+      déclarée n'est qu'un signal.
+    applies_to: [reversible, destructive]
+    condition: confidence_below
+    threshold: 0.5
+    decision: require_approval
+
+  - id: parse_warning
+    description: >
+      Un plan dont la sortie a dû être réparée par le parseur est
+      suspect dans son ensemble : si la syntaxe était approximative, la
+      classification du risque peut l'être aussi.
+    applies_to: [reversible, destructive]
+    condition: plan_has_parse_warning
+    decision: require_approval
+
+# Mots-clés qui trahissent une action destructive classée trop bas.
+#
+# Filet de sécurité, pas mécanisme principal : un planificateur qui
+# annonce « drop the table » en `reversible` doit être rattrapé. La liste
+# est volontairement courte — une liste longue donne l'illusion d'une
+# couverture qu'elle n'a pas.
+destructive_keywords:
+  - drop
+  - truncate
+  - purge
+  - delete
+  - wipe
+  - rm -rf
+  - force-delete

@@ -287,6 +287,21 @@ def _plan(clients: dict):
         return plan(state)
 
     return node
+
+
+def _policy(clients: dict):
+    """Applique la politique déclarative au plan proposé.
+
+    Dernier contrôle avant qu'un plan n'atteigne un humain. Aucun appel
+    LLM : un garde-fou fondé sur un modèle pourrait être convaincu.
+    """
+
+    def node(state: IncidentState) -> dict:
+        from aegisops.agents.policy import apply_policy
+
+        return apply_policy(state)
+
+    return node
 # --- Assemblage ----------------------------------------------------------
 
 def build_graph(checkpointer=None, clients: dict | None = None):
@@ -329,6 +344,7 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     graph.add_node("assemble", timed("assemble", _assemble(clients)))
     graph.add_node("analyse", timed("analyse", _analyse(clients)))
     graph.add_node("plan", timed("plan", _plan(clients)))
+    graph.add_node("policy", timed("policy", _policy(clients)))
 
     graph.add_edge(START, "detect")
     graph.add_edge("detect", "metrics")
@@ -339,7 +355,8 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     graph.add_edge("assemble", "analyse")
     graph.add_edge("analyse", "verify")
     graph.add_edge("verify", "plan")
-    graph.add_edge("plan", END)
+    graph.add_edge("plan", "policy")
+    graph.add_edge("policy", END)
 
     return graph.compile(checkpointer=checkpointer)
 
@@ -502,6 +519,15 @@ def main() -> None:
                 print(f"     fondé sur : {', '.join(s.based_on)}")
         if remediation.not_addressed:
             print(f"\n  non traité : {remediation.not_addressed}")
+
+    policy = result.get("policy")
+    if policy and policy.decisions:
+        print(f"\npolitique (v{policy.policy_version}) : {policy.summary()}")
+        for d in policy.decisions:
+            mark = {"allow": "   ", "require_approval": ">> ", "deny": "XX "}[d.decision]
+            print(f"  {mark}{d.order}. [{d.risk}] {d.action[:64]}")
+            for r in d.reasons:
+                print(f"       {r}")
 
 if __name__ == "__main__":
     main()
