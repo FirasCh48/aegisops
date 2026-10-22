@@ -867,3 +867,149 @@ fait que repousser la saturation.
 Détecter cela demanderait de comprendre la remédiation, donc de
 raisonner, donc de réintroduire ce qu'on contrôle. C'est la même limite
 qu'en J2 avec les preuves hors sujet.
+
+
+## Human approval gate (S5-J5)
+
+Le graphe s'arrête réellement. `interrupt()` suspend l'exécution,
+le checkpointer SQLite — écrit en S4-J1 — sérialise l'état complet, et
+deux endpoints FastAPI reprennent ou abandonnent.
+
+C'est la session où le checkpointer cesse d'être un confort de
+développement pour devenir structurel : sans lui, l'arrêt serait une
+perte.
+
+### La séquence
+GET /incidents/{id} → “status”: “awaiting_approval”
+“waiting_at”: “approval”
+4 étapes en attente
+POST /incidents/{id}/approve → {“approved”: [2,3], “rejected”: [4,5]}
+GET /incidents/{id} → “status”: “complete”
+
+
+La reprise se fait depuis la base, pas depuis une mémoire de processus :
+une investigation suspendue reste reprenable après un redémarrage de
+l'API.
+
+### L'API n'exécute rien
+
+Les endpoints reprennent un graphe avec une décision humaine et
+l'enregistrent. Ce qui se passe ensuite — redémarrer un service,
+déployer un correctif — reste entre les mains de la personne qui a
+approuvé.
+
+Ajouter l'exécution demanderait d'écrire un exécuteur, de lui donner des
+accès, et de décider ce qu'il fait d'un échec à mi-parcours. Trois
+décisions qui ne doivent pas être prises par inadvertance.
+
+### Deux défauts corrigés, de la même famille
+
+**`GraphInterrupt` était intercepté comme une erreur.** Le `try/except
+Exception` de `timed`, écrit en S4-J1 pour qu'une panne de nœud
+n'arrête pas le graphe, attrapait le mécanisme même qui *doit* l'arrêter.
+Le nœud s'exécutait, l'exception devenait une entrée dans `errors`, et
+l'approbation n'avait jamais lieu.
+
+```python
+        except GraphInterrupt:
+            # Signal de contrôle, pas erreur.
+            raise
+```
+
+**La liste des types sérialisables était maintenue à la main.** Oubliée
+trois fois en deux sessions, et l'oubli ne se voit pas à l'écriture : la
+sérialisation réussit. C'est à la relecture que LangGraph refuse de
+désérialiser et renvoie un dictionnaire brut — l'API recevait un `dict`
+là où elle attendait un modèle.
+
+La liste est désormais dérivée du module :
+
+```python
+return [
+    ("aegisops.agents.state", name)
+    for name, obj in inspect.getmembers(state_module, inspect.isclass)
+    if issubclass(obj, BaseModel) and obj is not BaseModel
+]
+```
+
+Seize types, sans maintenance.
+
+### Ce que le garde-fou ne voit pas
+
+L'étape 4 du plan proposait « augmenter temporairement la taille du
+pool » — exactement ce que le postmortem du scénario déconseille :
+« augmenter la taille du pool face à une fuite ne fait que repousser la
+saturation de quelques minutes ».
+
+Le niveau de risque est correct, la preuve est vérifiée, le format est
+valide. **Les quatre contrôles déterministes la laissent passer**, et
+c'est l'humain qui l'a rejetée, avec son motif enregistré dans l'état.
+
+C'est l'illustration de la limite énoncée en J2 et J4 : les contrôles
+automatiques attrapent ce qui est malformé, l'approbation humaine ce qui
+est mal pensé.
+
+
+## Pipeline complet (S5-J6)
+
+16 captures rejouables, 2 exécutions chacune, fournisseur Groq.
+
+| Mesure | Valeur |
+| --- | --- |
+| cause nommée | 11/32 (34 %) |
+| confiance moyenne | 0,81 ± 0,06 |
+| preuves inventées | 8 / 32 exécutions |
+| étapes `read_only` | 32/159 |
+| latence moyenne | 14 s |
+
+### Par scénario
+
+| Scénario | Nommé | Lecture |
+| --- | --- | --- |
+| `internal_error` | 4/4 | le modèle lit correctement la cascade 500 → 409 |
+| `memory_leak` | 4/4 | la tendance mémoire est sans ambiguïté |
+| `bad_release` | 2/4 | l'événement `deployment` est trouvé |
+| `connection_leak` | 1/12 | — |
+| `slow_response` | 0/4 | — |
+| `cpu_saturation` | 0/4 | — |
+
+### Le critère de mesure a été élargi, et c'est documenté
+
+La première version exigeait que le nom du scénario figure littéralement
+dans la cause. Elle donnait 9/32 et écartait des réponses correctes :
+« regression in the v2.8 deployment » ne contient pas « bad release ».
+
+Le critère par termes caractéristiques donne 11/32. L'écart de deux
+points vient du vocabulaire, pas du raisonnement — et les deux chiffres
+sont rapportés pour qu'un lecteur en juge.
+
+### Les échecs ne sont pas du vocabulaire
+
+Les causes produites sur `slow_response` et `cpu_saturation` sont fausses
+sur le fond :
+
+slow_response -> “Real stock depletion in inventory-service caused 409
+out-of-stock errors, which cascaded...”
+cpu_saturation -> “latency spike in downstream dependencies propagating
+to checkout-service”
+
+
+Le modèle s'appuie sur l'épuisement du stock — effet de bord des
+captures longues — plutôt que sur le signal injecté.
+
+**C'est une limite du bac à sable, pas du modèle.** Avec `warmup=180`,
+une capture consomme plus de 1 700 requêtes et `stock_total` chute de 60
+à 70 %. Cette variation est plus marquée que le signal réel, et le
+modèle choisit la plus forte.
+
+Correction identifiée, non appliquée faute de temps : augmenter le stock
+initial, ou le réinitialiser en cours de capture.
+
+### Huit preuves inventées
+
+Sur 32 exécutions, le vérificateur a rejeté 8 sources absentes du
+contexte. Le chaînage a fonctionné : aucune action fondée sur ces
+preuves n'a atteint l'approbation.
+
+C'est la justification du nœud de vérification, mesurée plutôt
+qu'affirmée.
