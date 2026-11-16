@@ -1,0 +1,791 @@
+{
+  "incident_id": "INC-20261003-202505-internal_error",
+  "scenario": "internal_error",
+  "injected_service": "inventory-service",
+  "params": {
+    "rate": 0.5
+  },
+  "load": {
+    "rps": 6.0,
+    "pattern": "diurnal"
+  },
+  "window": {
+    "start": "2026-10-03T20:24:05.114027+00:00",
+    "baseline_from": "2026-10-03T20:24:25.114027+00:00",
+    "injected_at": "2026-10-03T20:25:05.224894+00:00",
+    "cleared_at": "2026-10-03T20:28:05.494870+00:00",
+    "end": "2026-10-03T20:28:25.559716+00:00",
+    "warmup_s": 60,
+    "duration_s": 180,
+    "cold_start_skipped_s": 20
+  },
+  "metrics": {
+    "error_rate": {
+      "baseline": [
+        {
+          "labels": {},
+          "points": 2,
+          "peak": 0.2423,
+          "mean": 0.1211,
+          "last": 0.0,
+          "peak_at": "2026-10-03T20:24:25.114000+00:00"
+        }
+      ],
+      "incident": [],
+      "recovery": []
+    },
+    "p95_checkout": {
+      "baseline": [
+        {
+          "labels": {},
+          "points": 3,
+          "peak": 1.0,
+          "mean": 0.645,
+          "last": 0.466,
+          "peak_at": "2026-10-03T20:24:25.114000+00:00"
+        }
+      ],
+      "incident": [
+        {
+          "labels": {},
+          "points": 13,
+          "peak": 0.4667,
+          "mean": 0.4442,
+          "last": 0.4366,
+          "peak_at": "2026-10-03T20:25:05.225000+00:00"
+        }
+      ],
+      "recovery": [
+        {
+          "labels": {},
+          "points": 2,
+          "peak": 0.4502,
+          "mean": 0.4434,
+          "last": 0.4502,
+          "peak_at": "2026-10-03T20:28:20.495000+00:00"
+        }
+      ]
+    },
+    "p95_by_dependency": {
+      "baseline": [
+        {
+          "labels": {
+            "dependency": "inventory-service"
+          },
+          "points": 3,
+          "peak": 0.0512,
+          "mean": 0.0497,
+          "last": 0.0487,
+          "peak_at": "2026-10-03T20:24:25.114000+00:00"
+        },
+        {
+          "labels": {
+            "dependency": "payment-service"
+          },
+          "points": 3,
+          "peak": 0.0863,
+          "mean": 0.0839,
+          "last": 0.0843,
+          "peak_at": "2026-10-03T20:24:40.114000+00:00"
+        }
+      ],
+      "incident": [
+        {
+          "labels": {
+            "dependency": "inventory-service"
+          },
+          "points": 13,
+          "peak": 0.0486,
+          "mean": 0.0479,
+          "last": 0.0475,
+          "peak_at": "2026-10-03T20:26:05.225000+00:00"
+        },
+        {
+          "labels": {
+            "dependency": "payment-service"
+          },
+          "points": 13,
+          "peak": 0.0905,
+          "mean": 0.0875,
+          "last": 0.0835,
+          "peak_at": "2026-10-03T20:26:35.225000+00:00"
+        }
+      ],
+      "recovery": [
+        {
+          "labels": {
+            "dependency": "inventory-service"
+          },
+          "points": 2,
+          "peak": 0.0478,
+          "mean": 0.0477,
+          "last": 0.0478,
+          "peak_at": "2026-10-03T20:28:20.495000+00:00"
+        },
+        {
+          "labels": {
+            "dependency": "payment-service"
+          },
+          "points": 2,
+          "peak": 0.0876,
+          "mean": 0.0855,
+          "last": 0.0876,
+          "peak_at": "2026-10-03T20:28:20.495000+00:00"
+        }
+      ]
+    },
+    "dependency_failures": {
+      "baseline": [
+        {
+          "labels": {
+            "dependency": "postgres",
+            "reason": "pool_exhausted"
+          },
+          "points": 2,
+          "peak": 0.4234,
+          "mean": 0.2117,
+          "last": 0.0,
+          "peak_at": "2026-10-03T20:24:25.114000+00:00"
+        }
+      ],
+      "incident": [
+        {
+          "labels": {
+            "dependency": "inventory-service",
+            "reason": "http_error"
+          },
+          "points": 12,
+          "peak": 3.0858,
+          "mean": 2.4994,
+          "last": 3.0858,
+          "peak_at": "2026-10-03T20:28:05.225000+00:00"
+        }
+      ],
+      "recovery": [
+        {
+          "labels": {
+            "dependency": "inventory-service",
+            "reason": "http_error"
+          },
+          "points": 2,
+          "peak": 3.0858,
+          "mean": 2.8044,
+          "last": 2.523,
+          "peak_at": "2026-10-03T20:28:05.495000+00:00"
+        }
+      ]
+    },
+    "db_pool_usage": {
+      "baseline": [
+        {
+          "labels": {
+            "instance": "host.docker.internal:8001",
+            "job": "checkout-service",
+            "service": "checkout-service"
+          },
+          "points": 3,
+          "peak": 0.0,
+          "mean": 0.0,
+          "last": 0.0,
+          "peak_at": "2026-10-03T20:24:25.114000+00:00"
+        }
+      ],
+      "incident": [
+        {
+          "labels": {
+            "instance": "host.docker.internal:8001",
+            "job": "checkout-service",
+            "service": "checkout-service"
+          },
+          "points": 13,
+          "peak": 0.1,
+          "mean": 0.0077,
+          "last": 0.0,
+          "peak_at": "2026-10-03T20:26:35.225000+00:00"
+        }
+      ],
+      "recovery": [
+        {
+          "labels": {
+            "instance": "host.docker.internal:8001",
+            "job": "checkout-service",
+            "service": "checkout-service"
+          },
+          "points": 2,
+          "peak": 0.0,
+          "mean": 0.0,
+          "last": 0.0,
+          "peak_at": "2026-10-03T20:28:05.495000+00:00"
+        }
+      ]
+    },
+    "memory_mb": {
+      "baseline": [
+        {
+          "labels": {
+            "__name__": "process_memory_rss_mb",
+            "instance": "host.docker.internal:8001",
+            "job": "checkout-service",
+            "service": "checkout-service"
+          },
+          "points": 3,
+          "peak": 86.1836,
+          "mean": 85.901,
+          "last": 86.1836,
+          "peak_at": "2026-10-03T20:24:55.114000+00:00"
+        }
+      ],
+      "incident": [
+        {
+          "labels": {
+            "__name__": "process_memory_rss_mb",
+            "instance": "host.docker.internal:8001",
+            "job": "checkout-service",
+            "service": "checkout-service"
+          },
+          "points": 13,
+          "peak": 89.4023,
+          "mean": 87.9243,
+          "last": 89.4023,
+          "peak_at": "2026-10-03T20:27:50.225000+00:00"
+        }
+      ],
+      "recovery": [
+        {
+          "labels": {
+            "__name__": "process_memory_rss_mb",
+            "instance": "host.docker.internal:8001",
+            "job": "checkout-service",
+            "service": "checkout-service"
+          },
+          "points": 2,
+          "peak": 89.418,
+          "mean": 89.4102,
+          "last": 89.418,
+          "peak_at": "2026-10-03T20:28:20.495000+00:00"
+        }
+      ]
+    },
+    "cache_entries": {
+      "baseline": [
+        {
+          "labels": {
+            "__name__": "app_cache_entries",
+            "instance": "host.docker.internal:8001",
+            "job": "checkout-service",
+            "service": "checkout-service"
+          },
+          "points": 3,
+          "peak": 0.0,
+          "mean": 0.0,
+          "last": 0.0,
+          "peak_at": "2026-10-03T20:24:25.114000+00:00"
+        }
+      ],
+      "incident": [
+        {
+          "labels": {
+            "__name__": "app_cache_entries",
+            "instance": "host.docker.internal:8001",
+            "job": "checkout-service",
+            "service": "checkout-service"
+          },
+          "points": 13,
+          "peak": 0.0,
+          "mean": 0.0,
+          "last": 0.0,
+          "peak_at": "2026-10-03T20:25:05.225000+00:00"
+        }
+      ],
+      "recovery": [
+        {
+          "labels": {
+            "__name__": "app_cache_entries",
+            "instance": "host.docker.internal:8001",
+            "job": "checkout-service",
+            "service": "checkout-service"
+          },
+          "points": 2,
+          "peak": 0.0,
+          "mean": 0.0,
+          "last": 0.0,
+          "peak_at": "2026-10-03T20:28:05.495000+00:00"
+        }
+      ]
+    },
+    "stock_total": {
+      "baseline": [
+        {
+          "labels": {
+            "__name__": "inventory_stock_total",
+            "instance": "host.docker.internal:8003",
+            "job": "inventory-service",
+            "service": "inventory-service"
+          },
+          "points": 3,
+          "peak": 1931.0,
+          "mean": 1858.3333,
+          "last": 1788.0,
+          "peak_at": "2026-10-03T20:24:25.114000+00:00"
+        }
+      ],
+      "incident": [
+        {
+          "labels": {
+            "__name__": "inventory_stock_total",
+            "instance": "host.docker.internal:8003",
+            "job": "inventory-service",
+            "service": "inventory-service"
+          },
+          "points": 13,
+          "peak": 1736.0,
+          "mean": 1455.2308,
+          "last": 1200.0,
+          "peak_at": "2026-10-03T20:25:05.225000+00:00"
+        }
+      ],
+      "recovery": [
+        {
+          "labels": {
+            "__name__": "inventory_stock_total",
+            "instance": "host.docker.internal:8003",
+            "job": "inventory-service",
+            "service": "inventory-service"
+          },
+          "points": 2,
+          "peak": 1200.0,
+          "mean": 1166.0,
+          "last": 1132.0,
+          "peak_at": "2026-10-03T20:28:05.495000+00:00"
+        }
+      ]
+    }
+  },
+  "logs": {
+    "checkout-service": {
+      "baseline": {
+        "counts": {
+          "order_created": 199
+        },
+        "samples": {
+          "order_created": [
+            {
+              "order_id": 11983,
+              "user_id": 315,
+              "auth_id": 838345,
+              "sku": 20,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:24:25.244475Z"
+            },
+            {
+              "order_id": 11984,
+              "user_id": 130,
+              "auth_id": 548922,
+              "sku": 1,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:24:25.664969Z"
+            },
+            {
+              "order_id": 11985,
+              "user_id": 355,
+              "auth_id": 840714,
+              "sku": 16,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:24:25.864429Z"
+            }
+          ]
+        }
+      },
+      "incident": {
+        "counts": {
+          "order_created": 531,
+          "dependency_error": 514
+        },
+        "samples": {
+          "order_created": [
+            {
+              "order_id": 12182,
+              "user_id": 89,
+              "auth_id": 425427,
+              "sku": 19,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:25:05.344179Z"
+            },
+            {
+              "order_id": 12183,
+              "user_id": 125,
+              "auth_id": 165828,
+              "sku": 4,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:25:05.359353Z"
+            },
+            {
+              "order_id": 12184,
+              "user_id": 407,
+              "auth_id": 640384,
+              "sku": 8,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:25:05.516768Z"
+            }
+          ],
+          "dependency_error": [
+            {
+              "dependency": "inventory-service",
+              "status": 500,
+              "event": "dependency_error",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-03T20:25:06.582345Z"
+            },
+            {
+              "dependency": "inventory-service",
+              "status": 500,
+              "event": "dependency_error",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-03T20:25:06.994079Z"
+            },
+            {
+              "dependency": "inventory-service",
+              "status": 500,
+              "event": "dependency_error",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-03T20:25:07.152182Z"
+            }
+          ]
+        }
+      },
+      "recovery": {
+        "counts": {
+          "order_created": 97
+        },
+        "samples": {
+          "order_created": [
+            {
+              "order_id": 12713,
+              "user_id": 81,
+              "auth_id": 980093,
+              "sku": 18,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:28:05.720876Z"
+            },
+            {
+              "order_id": 12714,
+              "user_id": 123,
+              "auth_id": 929152,
+              "sku": 5,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:28:05.757405Z"
+            },
+            {
+              "order_id": 12715,
+              "user_id": 231,
+              "auth_id": 444015,
+              "sku": 15,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:28:06.075453Z"
+            }
+          ]
+        }
+      }
+    },
+    "payment-service": {
+      "baseline": {
+        "counts": {
+          "payment_authorized": 199
+        },
+        "samples": {
+          "payment_authorized": [
+            {
+              "user_id": 315,
+              "auth_id": 838345,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:24:25.217234Z"
+            },
+            {
+              "user_id": 130,
+              "auth_id": 548922,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:24:25.639610Z"
+            },
+            {
+              "user_id": 355,
+              "auth_id": 840714,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:24:25.836745Z"
+            }
+          ]
+        }
+      },
+      "incident": {
+        "counts": {
+          "payment_authorized": 531
+        },
+        "samples": {
+          "payment_authorized": [
+            {
+              "user_id": 89,
+              "auth_id": 425427,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:25:05.308272Z"
+            },
+            {
+              "user_id": 125,
+              "auth_id": 165828,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:25:05.322527Z"
+            },
+            {
+              "user_id": 407,
+              "auth_id": 640384,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:25:05.507811Z"
+            }
+          ]
+        }
+      },
+      "recovery": {
+        "counts": {
+          "payment_authorized": 97
+        },
+        "samples": {
+          "payment_authorized": [
+            {
+              "user_id": 81,
+              "auth_id": 980093,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:28:05.676216Z"
+            },
+            {
+              "user_id": 123,
+              "auth_id": 929152,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:28:05.750028Z"
+            },
+            {
+              "user_id": 231,
+              "auth_id": 444015,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:28:06.027699Z"
+            }
+          ]
+        }
+      }
+    },
+    "inventory-service": {
+      "baseline": {
+        "counts": {
+          "stock_reserved": 199
+        },
+        "samples": {
+          "stock_reserved": [
+            {
+              "sku": 20,
+              "qty": 1,
+              "remaining": 93,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:24:25.177636Z"
+            },
+            {
+              "sku": 1,
+              "qty": 1,
+              "remaining": 95,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:24:25.599582Z"
+            },
+            {
+              "sku": 16,
+              "qty": 1,
+              "remaining": 96,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:24:25.793981Z"
+            }
+          ]
+        }
+      },
+      "incident": {
+        "counts": {
+          "stock_reserved": 531,
+          "inventory_internal_error": 514,
+          "fault_injected": 1
+        },
+        "samples": {
+          "fault_injected": [
+            {
+              "fault": "internal_error",
+              "params": {
+                "rate": 0.5
+              },
+              "injected_service": "inventory-service",
+              "event": "fault_injected",
+              "service": "inventory-service",
+              "level": "warning",
+              "timestamp": "2026-10-03T20:25:05.242850Z"
+            }
+          ],
+          "stock_reserved": [
+            {
+              "sku": 19,
+              "qty": 1,
+              "remaining": 80,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:25:05.259192Z"
+            },
+            {
+              "sku": 4,
+              "qty": 1,
+              "remaining": 82,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:25:05.281944Z"
+            },
+            {
+              "sku": 8,
+              "qty": 1,
+              "remaining": 84,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:25:05.462667Z"
+            }
+          ],
+          "inventory_internal_error": [
+            {
+              "error_type": "StockLedgerCorruption",
+              "hint": "checksum mismatch on stock ledger",
+              "event": "inventory_internal_error",
+              "service": "inventory-service",
+              "level": "error",
+              "timestamp": "2026-10-03T20:25:06.580938Z"
+            },
+            {
+              "error_type": "StockLedgerCorruption",
+              "hint": "checksum mismatch on stock ledger",
+              "event": "inventory_internal_error",
+              "service": "inventory-service",
+              "level": "error",
+              "timestamp": "2026-10-03T20:25:06.992251Z"
+            },
+            {
+              "error_type": "StockLedgerCorruption",
+              "hint": "checksum mismatch on stock ledger",
+              "event": "inventory_internal_error",
+              "service": "inventory-service",
+              "level": "error",
+              "timestamp": "2026-10-03T20:25:07.150643Z"
+            }
+          ]
+        }
+      },
+      "recovery": {
+        "counts": {
+          "stock_reserved": 97,
+          "fault_cleared": 1
+        },
+        "samples": {
+          "fault_cleared": [
+            {
+              "fault": "internal_error",
+              "duration_s": 180.3,
+              "injected_service": "inventory-service",
+              "event": "fault_cleared",
+              "service": "inventory-service",
+              "level": "warning",
+              "timestamp": "2026-10-03T20:28:05.504947Z"
+            }
+          ],
+          "stock_reserved": [
+            {
+              "sku": 18,
+              "qty": 1,
+              "remaining": 64,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:28:05.626461Z"
+            },
+            {
+              "sku": 5,
+              "qty": 1,
+              "remaining": 66,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:28:05.704597Z"
+            },
+            {
+              "sku": 15,
+              "qty": 1,
+              "remaining": 61,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-03T20:28:05.979043Z"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "ground_truth": {
+    "root_cause": "Erreur interne d'inventory-service (corruption du registre de stock), traduite en 409 par checkout-service.",
+    "remediation": "Réparer le registre de stock d'inventory-service. Réapprovisionner ne résoudrait rien."
+  },
+  "holdout": false,
+  "baseline_clean": true
+}

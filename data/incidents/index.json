@@ -1,0 +1,338 @@
+[
+  {
+    "incident_id": "INC-20261003-193936-connection_leak",
+    "file": "INC-20261003-193936-connection_leak.json",
+    "scenario": "connection_leak",
+    "injected_service": "checkout-service",
+    "duration_s": 180,
+    "rps": 6.0,
+    "holdout": false,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 1.0,
+      "memory_mb_baseline": 86.957,
+      "memory_mb_incident": 93.0664,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0485,
+        "payment-service": 0.0891
+      },
+      "recovered_without_restart": false
+    }
+  },
+  {
+    "incident_id": "INC-20261003-194429-connection_leak",
+    "file": "INC-20261003-194429-connection_leak.json",
+    "scenario": "connection_leak",
+    "injected_service": "checkout-service",
+    "duration_s": 180,
+    "rps": 9.0,
+    "holdout": false,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 1.0,
+      "memory_mb_baseline": 87.0586,
+      "memory_mb_incident": 95.418,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0494,
+        "payment-service": 0.0919
+      },
+      "recovered_without_restart": false
+    }
+  },
+  {
+    "incident_id": "INC-20261003-194922-connection_leak",
+    "file": "INC-20261003-194922-connection_leak.json",
+    "scenario": "connection_leak",
+    "injected_service": "checkout-service",
+    "duration_s": 240,
+    "rps": 4.0,
+    "holdout": true,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 1.0,
+      "memory_mb_baseline": 85.6797,
+      "memory_mb_incident": 89.5156,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.049,
+        "payment-service": 0.0897
+      },
+      "recovered_without_restart": false
+    }
+  },
+  {
+    "incident_id": "INC-20261003-195515-slow_response",
+    "file": "INC-20261003-195515-slow_response.json",
+    "scenario": "slow_response",
+    "injected_service": "payment-service",
+    "duration_s": 180,
+    "rps": 6.0,
+    "holdout": false,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 0.1,
+      "memory_mb_baseline": 87.0781,
+      "memory_mb_incident": 95.0977,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0637,
+        "payment-service": 4.85
+      },
+      "recovered_without_restart": true
+    }
+  },
+  {
+    "incident_id": "INC-20261003-200008-slow_response",
+    "file": "INC-20261003-200008-slow_response.json",
+    "scenario": "slow_response",
+    "injected_service": "payment-service",
+    "duration_s": 150,
+    "rps": 9.0,
+    "holdout": false,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 0.2,
+      "memory_mb_baseline": 86.3633,
+      "memory_mb_incident": 96.6875,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0493,
+        "payment-service": 4.85
+      },
+      "recovered_without_restart": true
+    }
+  },
+  {
+    "incident_id": "INC-20261003-200430-slow_response",
+    "file": "INC-20261003-200430-slow_response.json",
+    "scenario": "slow_response",
+    "injected_service": "payment-service",
+    "duration_s": 180,
+    "rps": 4.0,
+    "holdout": true,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 0.0,
+      "memory_mb_baseline": 85.6719,
+      "memory_mb_incident": 92.7266,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.048,
+        "payment-service": 4.85
+      },
+      "recovered_without_restart": true
+    }
+  },
+  {
+    "incident_id": "INC-20261003-200924-bad_release",
+    "file": "INC-20261003-200924-bad_release.json",
+    "scenario": "bad_release",
+    "injected_service": "checkout-service",
+    "duration_s": 180,
+    "rps": 6.0,
+    "holdout": false,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 1.0,
+      "memory_mb_baseline": 86.9922,
+      "memory_mb_incident": 92.2461,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0488,
+        "payment-service": 0.0908
+      },
+      "recovered_without_restart": false
+    }
+  },
+  {
+    "incident_id": "INC-20261003-201418-bad_release",
+    "file": "INC-20261003-201418-bad_release.json",
+    "scenario": "bad_release",
+    "injected_service": "checkout-service",
+    "duration_s": 240,
+    "rps": 8.0,
+    "holdout": false,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 1.0,
+      "memory_mb_baseline": 86.3086,
+      "memory_mb_incident": 96.1328,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0483,
+        "payment-service": 0.0891
+      },
+      "recovered_without_restart": false
+    }
+  },
+  {
+    "incident_id": "INC-20261003-202011-bad_release",
+    "file": "INC-20261003-202011-bad_release.json",
+    "scenario": "bad_release",
+    "injected_service": "checkout-service",
+    "duration_s": 180,
+    "rps": 5.0,
+    "holdout": true,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 1.0,
+      "memory_mb_baseline": 86.2695,
+      "memory_mb_incident": 91.0039,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0486,
+        "payment-service": 0.0878
+      },
+      "recovered_without_restart": false
+    }
+  },
+  {
+    "incident_id": "INC-20261003-202505-internal_error",
+    "file": "INC-20261003-202505-internal_error.json",
+    "scenario": "internal_error",
+    "injected_service": "inventory-service",
+    "duration_s": 180,
+    "rps": 6.0,
+    "holdout": false,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 0.1,
+      "memory_mb_baseline": 86.1836,
+      "memory_mb_incident": 89.4023,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0486,
+        "payment-service": 0.0905
+      },
+      "recovered_without_restart": true
+    }
+  },
+  {
+    "incident_id": "INC-20261003-202958-internal_error",
+    "file": "INC-20261003-202958-internal_error.json",
+    "scenario": "internal_error",
+    "injected_service": "inventory-service",
+    "duration_s": 180,
+    "rps": 9.0,
+    "holdout": false,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 0.1,
+      "memory_mb_baseline": 86.3516,
+      "memory_mb_incident": 90.2773,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0487,
+        "payment-service": 0.0898
+      },
+      "recovered_without_restart": true
+    }
+  },
+  {
+    "incident_id": "INC-20261003-203450-internal_error",
+    "file": "INC-20261003-203450-internal_error.json",
+    "scenario": "internal_error",
+    "injected_service": "inventory-service",
+    "duration_s": 150,
+    "rps": 5.0,
+    "holdout": true,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 0.1,
+      "memory_mb_baseline": 86.1914,
+      "memory_mb_incident": 88.1445,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0483,
+        "payment-service": 0.091
+      },
+      "recovered_without_restart": true
+    }
+  },
+  {
+    "incident_id": "INC-20261003-203913-cpu_saturation",
+    "file": "INC-20261003-203913-cpu_saturation.json",
+    "scenario": "cpu_saturation",
+    "injected_service": "checkout-service",
+    "duration_s": 150,
+    "rps": 6.0,
+    "holdout": false,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 0.1,
+      "memory_mb_baseline": 86.9062,
+      "memory_mb_incident": 91.8203,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.2202,
+        "payment-service": 0.1204
+      },
+      "recovered_without_restart": true
+    }
+  },
+  {
+    "incident_id": "INC-20261003-204336-cpu_saturation",
+    "file": "INC-20261003-204336-cpu_saturation.json",
+    "scenario": "cpu_saturation",
+    "injected_service": "checkout-service",
+    "duration_s": 150,
+    "rps": 9.0,
+    "holdout": true,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 0.1,
+      "memory_mb_baseline": 87.9297,
+      "memory_mb_incident": 96.2852,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.2333,
+        "payment-service": 0.1883
+      },
+      "recovered_without_restart": true
+    }
+  },
+  {
+    "incident_id": "INC-20261003-210740-memory_leak",
+    "file": "INC-20261003-210740-memory_leak.json",
+    "scenario": "memory_leak",
+    "injected_service": "checkout-service",
+    "duration_s": 600,
+    "rps": 6.0,
+    "holdout": true,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 0.1,
+      "memory_mb_baseline": 86.0625,
+      "memory_mb_incident": 390.3125,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.0483,
+        "payment-service": 0.0927
+      },
+      "recovered_without_restart": false
+    }
+  },
+  {
+    "incident_id": "INC-20261003-212619-memory_leak",
+    "file": "INC-20261003-212619-memory_leak.json",
+    "scenario": "memory_leak",
+    "injected_service": "checkout-service",
+    "duration_s": 420,
+    "rps": 4.0,
+    "holdout": false,
+    "usable": true,
+    "problems": [],
+    "signature": {
+      "db_pool_usage_incident": 0.2,
+      "memory_mb_baseline": 85.7734,
+      "memory_mb_incident": 381.2852,
+      "p95_by_dependency_incident": {
+        "inventory-service": 0.049,
+        "payment-service": 0.09
+      },
+      "recovered_without_restart": true
+    }
+  }
+]

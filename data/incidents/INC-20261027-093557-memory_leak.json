@@ -1,0 +1,498 @@
+{
+  "incident_id": "INC-20261027-093557-memory_leak",
+  "scenario": "memory_leak",
+  "injected_service": "checkout-service",
+  "params": {
+    "kb_per_request": 256,
+    "max_mb": 300
+  },
+  "load": {
+    "rps": 6.0,
+    "pattern": "diurnal"
+  },
+  "window": {
+    "start": "2026-10-27T09:34:53.137687+00:00",
+    "baseline_from": "2026-10-27T09:35:13.137687+00:00",
+    "injected_at": "2026-10-27T09:35:57.283962+00:00",
+    "cleared_at": "2026-10-27T09:46:24.053184+00:00",
+    "end": "2026-10-27T09:46:44.785298+00:00",
+    "warmup_s": 60,
+    "duration_s": 600,
+    "cold_start_skipped_s": 20
+  },
+  "metrics": {
+    "error_rate": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "p95_checkout": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "p95_by_dependency": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "dependency_failures": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "db_pool_usage": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "memory_mb": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "cache_entries": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "stock_total": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    }
+  },
+  "metrics_raw": {
+    "error_rate": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "p95_checkout": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "p95_by_dependency": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "dependency_failures": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "db_pool_usage": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "memory_mb": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "cache_entries": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "stock_total": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    }
+  },
+  "logs": {
+    "checkout-service": {
+      "baseline": {
+        "counts": {
+          "order_created": 155
+        },
+        "samples": {
+          "order_created": [
+            {
+              "order_id": 43950,
+              "user_id": 51,
+              "auth_id": 666613,
+              "sku": 18,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:13.455592Z"
+            },
+            {
+              "order_id": 43951,
+              "user_id": 296,
+              "auth_id": 663884,
+              "sku": 6,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:13.803692Z"
+            },
+            {
+              "order_id": 43952,
+              "user_id": 313,
+              "auth_id": 897360,
+              "sku": 2,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:13.872298Z"
+            }
+          ]
+        }
+      },
+      "incident": {
+        "counts": {
+          "order_created": 1718,
+          "dependency_error": 577,
+          "dependency_timeout": 13,
+          "db_pool_timeout": 9,
+          "fault_injected": 1
+        },
+        "samples": {
+          "fault_injected": [
+            {
+              "fault": "memory_leak",
+              "params": {
+                "kb_per_request": 256,
+                "max_mb": 300
+              },
+              "injected_service": "checkout-service",
+              "event": "fault_injected",
+              "service": "checkout-service",
+              "level": "warning",
+              "timestamp": "2026-10-27T09:35:57.294157Z"
+            }
+          ],
+          "order_created": [
+            {
+              "order_id": 44105,
+              "user_id": 74,
+              "auth_id": 799742,
+              "sku": 1,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:57.790383Z"
+            },
+            {
+              "order_id": 44106,
+              "user_id": 479,
+              "auth_id": 915969,
+              "sku": 4,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:57.971188Z"
+            },
+            {
+              "order_id": 44107,
+              "user_id": 482,
+              "auth_id": 507338,
+              "sku": 20,
+              "version": "v2.7",
+              "event": "order_created",
+              "service": "checkout-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:57.988472Z"
+            }
+          ],
+          "dependency_timeout": [
+            {
+              "dependency": "payment-service",
+              "timeout_s": 2.0,
+              "event": "dependency_timeout",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:37:11.707174Z"
+            },
+            {
+              "dependency": "payment-service",
+              "timeout_s": 2.0,
+              "event": "dependency_timeout",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:37:11.707896Z"
+            },
+            {
+              "dependency": "payment-service",
+              "timeout_s": 2.0,
+              "event": "dependency_timeout",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:37:11.780525Z"
+            }
+          ],
+          "db_pool_timeout": [
+            {
+              "user_id": 381,
+              "pool_size": 10,
+              "version": "v2.7",
+              "event": "db_pool_timeout",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:39:04.236465Z"
+            },
+            {
+              "user_id": 316,
+              "pool_size": 10,
+              "version": "v2.7",
+              "event": "db_pool_timeout",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:39:04.242018Z"
+            },
+            {
+              "user_id": 56,
+              "pool_size": 10,
+              "version": "v2.7",
+              "event": "db_pool_timeout",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:39:04.244584Z"
+            }
+          ],
+          "dependency_error": [
+            {
+              "dependency": "inventory-service",
+              "status": 409,
+              "event": "dependency_error",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:41:42.868396Z"
+            },
+            {
+              "dependency": "inventory-service",
+              "status": 409,
+              "event": "dependency_error",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:41:56.595464Z"
+            },
+            {
+              "dependency": "inventory-service",
+              "status": 409,
+              "event": "dependency_error",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:42:09.882803Z"
+            }
+          ]
+        }
+      },
+      "recovery": {
+        "counts": {
+          "fault_cleared": 1
+        },
+        "samples": {
+          "fault_cleared": [
+            {
+              "fault": "memory_leak",
+              "duration_s": 626.8,
+              "injected_service": "checkout-service",
+              "event": "fault_cleared",
+              "service": "checkout-service",
+              "level": "warning",
+              "timestamp": "2026-10-27T09:46:24.076200Z"
+            }
+          ]
+        }
+      }
+    },
+    "payment-service": {
+      "baseline": {
+        "counts": {
+          "payment_authorized": 155
+        },
+        "samples": {
+          "payment_authorized": [
+            {
+              "user_id": 51,
+              "auth_id": 666613,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:13.449671Z"
+            },
+            {
+              "user_id": 296,
+              "auth_id": 663884,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:13.648878Z"
+            },
+            {
+              "user_id": 313,
+              "auth_id": 897360,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:13.866712Z"
+            }
+          ]
+        }
+      },
+      "incident": {
+        "counts": {
+          "payment_authorized": 1727
+        },
+        "samples": {
+          "payment_authorized": [
+            {
+              "user_id": 74,
+              "auth_id": 799742,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:57.770568Z"
+            },
+            {
+              "user_id": 479,
+              "auth_id": 915969,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:57.952723Z"
+            },
+            {
+              "user_id": 482,
+              "auth_id": 507338,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:57.962627Z"
+            }
+          ]
+        }
+      },
+      "recovery": {
+        "counts": {},
+        "samples": {}
+      }
+    },
+    "inventory-service": {
+      "baseline": {
+        "counts": {
+          "stock_reserved": 155
+        },
+        "samples": {
+          "stock_reserved": [
+            {
+              "sku": 18,
+              "qty": 1,
+              "remaining": 96,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:13.413473Z"
+            },
+            {
+              "sku": 6,
+              "qty": 1,
+              "remaining": 95,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:13.610040Z"
+            },
+            {
+              "sku": 2,
+              "qty": 1,
+              "remaining": 95,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:13.826967Z"
+            }
+          ]
+        }
+      },
+      "incident": {
+        "counts": {
+          "stock_reserved": 1734,
+          "out_of_stock": 577
+        },
+        "samples": {
+          "stock_reserved": [
+            {
+              "sku": 1,
+              "qty": 1,
+              "remaining": 82,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:57.731673Z"
+            },
+            {
+              "sku": 4,
+              "qty": 1,
+              "remaining": 82,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:57.912092Z"
+            },
+            {
+              "sku": 20,
+              "qty": 1,
+              "remaining": 92,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:35:57.915873Z"
+            }
+          ],
+          "out_of_stock": [
+            {
+              "sku": 5,
+              "requested": 1,
+              "available": 0,
+              "event": "out_of_stock",
+              "service": "inventory-service",
+              "level": "warning",
+              "timestamp": "2026-10-27T09:41:42.866786Z"
+            },
+            {
+              "sku": 5,
+              "requested": 1,
+              "available": 0,
+              "event": "out_of_stock",
+              "service": "inventory-service",
+              "level": "warning",
+              "timestamp": "2026-10-27T09:41:56.591809Z"
+            },
+            {
+              "sku": 5,
+              "requested": 1,
+              "available": 0,
+              "event": "out_of_stock",
+              "service": "inventory-service",
+              "level": "warning",
+              "timestamp": "2026-10-27T09:42:09.881538Z"
+            }
+          ]
+        }
+      },
+      "recovery": {
+        "counts": {},
+        "samples": {}
+      }
+    }
+  },
+  "ground_truth": {
+    "root_cause": "Fuite mémoire : un cache applicatif grossit sans politique d'éviction, sa clé contenant un élément unique par requête.",
+    "remediation": "Ajouter une politique d'éviction (TTL ou LRU) et retirer l'élément unique de la clé. Redémarrage nécessaire."
+  },
+  "holdout": true,
+  "baseline_clean": true
+}

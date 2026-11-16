@@ -1,0 +1,249 @@
+{
+  "incident_id": "INC-20261026-102400-bad_release",
+  "scenario": "bad_release",
+  "injected_service": "checkout-service",
+  "params": {
+    "version": "v2.8"
+  },
+  "load": {
+    "rps": 6.0,
+    "pattern": "diurnal"
+  },
+  "window": {
+    "start": "2026-10-26T10:22:55.876924+00:00",
+    "baseline_from": "2026-10-26T10:23:15.876924+00:00",
+    "injected_at": "2026-10-26T10:24:00.825967+00:00",
+    "cleared_at": "2026-10-26T10:27:20.548587+00:00",
+    "end": "2026-10-27T09:23:57.128606+00:00",
+    "warmup_s": 60,
+    "duration_s": 180,
+    "cold_start_skipped_s": 20
+  },
+  "metrics": {
+    "error_rate": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "p95_checkout": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "p95_by_dependency": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "dependency_failures": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "db_pool_usage": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "memory_mb": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "cache_entries": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "stock_total": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    }
+  },
+  "metrics_raw": {
+    "error_rate": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "p95_checkout": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "p95_by_dependency": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "dependency_failures": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "db_pool_usage": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "memory_mb": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "cache_entries": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    },
+    "stock_total": {
+      "baseline": [],
+      "incident": [],
+      "recovery": []
+    }
+  },
+  "logs": {
+    "checkout-service": {
+      "baseline": {
+        "counts": {},
+        "samples": {}
+      },
+      "incident": {
+        "counts": {},
+        "samples": {}
+      },
+      "recovery": {
+        "counts": {
+          "db_pool_timeout": 16
+        },
+        "samples": {
+          "db_pool_timeout": [
+            {
+              "user_id": 476,
+              "pool_size": 10,
+              "version": "v2.7",
+              "event": "db_pool_timeout",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:23:40.595735Z"
+            },
+            {
+              "user_id": 209,
+              "pool_size": 10,
+              "version": "v2.7",
+              "event": "db_pool_timeout",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:23:40.980508Z"
+            },
+            {
+              "user_id": 390,
+              "pool_size": 10,
+              "version": "v2.7",
+              "event": "db_pool_timeout",
+              "service": "checkout-service",
+              "level": "error",
+              "timestamp": "2026-10-27T09:23:41.486019Z"
+            }
+          ]
+        }
+      }
+    },
+    "payment-service": {
+      "baseline": {
+        "counts": {},
+        "samples": {}
+      },
+      "incident": {
+        "counts": {},
+        "samples": {}
+      },
+      "recovery": {
+        "counts": {
+          "payment_authorized": 16
+        },
+        "samples": {
+          "payment_authorized": [
+            {
+              "user_id": 476,
+              "auth_id": 803467,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:23:38.819995Z"
+            },
+            {
+              "user_id": 209,
+              "auth_id": 311151,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:23:39.242600Z"
+            },
+            {
+              "user_id": 390,
+              "auth_id": 614824,
+              "event": "payment_authorized",
+              "service": "payment-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:23:39.309231Z"
+            }
+          ]
+        }
+      }
+    },
+    "inventory-service": {
+      "baseline": {
+        "counts": {},
+        "samples": {}
+      },
+      "incident": {
+        "counts": {},
+        "samples": {}
+      },
+      "recovery": {
+        "counts": {
+          "stock_reserved": 13
+        },
+        "samples": {
+          "stock_reserved": [
+            {
+              "sku": 19,
+              "qty": 1,
+              "remaining": 42,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:23:27.839348Z"
+            },
+            {
+              "sku": 11,
+              "qty": 1,
+              "remaining": 27,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:23:27.931200Z"
+            },
+            {
+              "sku": 17,
+              "qty": 1,
+              "remaining": 38,
+              "event": "stock_reserved",
+              "service": "inventory-service",
+              "level": "info",
+              "timestamp": "2026-10-27T09:23:38.566121Z"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "ground_truth": {
+    "root_cause": "Régression introduite par le déploiement v2.8, qui a introduit une fuite de connexions.",
+    "remediation": "Rollback vers v2.7, puis redéploiement pour libérer les connexions déjà retenues."
+  },
+  "holdout": true,
+  "baseline_clean": true
+}

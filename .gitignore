@@ -49,3 +49,33 @@ data/dataset/test.jsonl
 # fichiers seuls n'aurait aucun effet.
 !data/dataset/outputs/
 !data/dataset/outputs/*.json
+
+# Les captures sont des données primaires et irremplaçables : la
+# rétention de Prometheus est de six heures, donc une capture perdue ne
+# se régénère pas, elle se refait — et le système d'alors n'existe plus.
+# 46 fichiers, 1,8 Mo.
+#
+# Les captures défectueuses sont suivies elles aussi : ce sont les
+# pièces des incidents décrits dans docs/benchmarks.md, et leur santé se
+# juge à la lecture (tools/capture_health.py), pas au stockage.
+!data/incidents/*.json
+
+# Les captures sont des données primaires et irremplaçables : la
+# rétention de Prometheus est de six heures, donc une capture perdue ne
+# se régénère pas, elle se refait — et le système d'alors n'existe plus.
+# 46 fichiers, 1,8 Mo.
+#
+# Les captures défectueuses sont suivies elles aussi : ce sont les
+# pièces des incidents décrits dans docs/benchmarks.md, et leur santé se
+# juge à la lecture (tools/capture_health.py), pas au stockage.
+!data/incidents/*.json
+
+# Les captures sont des données primaires et irremplaçables : la
+# rétention de Prometheus est de six heures, donc une capture perdue ne
+# se régénère pas, elle se refait — et le système d'alors n'existe plus.
+# 46 fichiers, 1,8 Mo.
+#
+# Les captures défectueuses sont suivies elles aussi : ce sont les
+# pièces des incidents décrits dans docs/benchmarks.md, et leur santé se
+# juge à la lecture (tools/capture_health.py), pas au stockage.
+!data/incidents/*.json
