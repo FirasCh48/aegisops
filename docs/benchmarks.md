@@ -1013,3 +1013,60 @@ preuves n'a atteint l'approbation.
 
 C'est la justification du nœud de vérification, mesurée plutôt
 qu'affirmée.
+
+
+## Pipeline complet (S5-J6)
+
+16 captures rejouables, 2 exécutions chacune, fournisseur Groq.
+
+| Mesure | Valeur |
+| --- | --- |
+| cause nommée | **25/32 (78 %)** |
+| confiance moyenne | 0,85 ± 0,05 |
+| preuves inventées | 7 / 32 exécutions |
+| preuves mal citées | 1 / 32 |
+| étapes `read_only` | 42/146 |
+| exécutions en échec | 0 |
+
+| Scénario | Nommé | Confiance |
+| --- | --- | --- |
+| `connection_leak` | 12/12 | 0,87 |
+| `internal_error` | 4/4 | 0,87 |
+| `memory_leak` | 4/4 | 0,87 |
+| `bad_release` | 3/4 | 0,79 |
+| `slow_response` | 2/4 | 0,79 |
+| `cpu_saturation` | 0/4 | 0,84 |
+
+### Le critère de mesure valait seize points
+
+La première version exigeait que le nom du scénario figure littéralement
+dans la cause. Elle donnait **9/32**. Le critère par termes
+caractéristiques donne **25/32**.
+
+Seize points d'écart venaient du vocabulaire, pas du raisonnement :
+« regression in the v2.8 deployment » ne contient pas « bad release »,
+« connection pool leak » ne contient pas « connection leak ».
+
+Les deux chiffres sont rapportés. Sans la lecture des causes produites,
+le 9/32 aurait conduit à ajuster le prompt pour un défaut qui était dans
+la mesure.
+
+### `cpu_saturation` : un échec réel
+
+“latency spike in downstream dependencies propagating to checkout-service”
+
+
+La formulation est proche et la conclusion inverse : le modèle désigne
+les dépendances comme cause, alors qu'elles sont les victimes. Le
+postmortem énonce le critère — « toutes les dépendances se dégradent
+ensemble, ce qui désigne l'appelant » — et il n'est pas appliqué.
+
+C'est le scénario où le raisonnement attendu est le moins direct, et le
+seul à 0/4.
+
+### La latence rapportée est fausse
+
+`trace` totalise 149 ms, alors que les exécutions prennent 15 à 25
+secondes. `timed` mesure la durée du nœud, et l'appel LLM n'y est pas
+toujours compté. La latence réelle est celle affichée par exécution, pas
+celle du résumé.

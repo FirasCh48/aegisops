@@ -80,6 +80,15 @@ PRODUCED_FIELDS = {
     "hypothesis", "verification", "plan", "policy", "approval",
 }
 
+# Noms des nœuds, pour que `stop_before` rejette un nom inexistant à la
+# construction plutôt que de l'ignorer en silence à l'exécution. Même
+# raisonnement que `PRODUCED_FIELDS` : un contrôle placé au plus tôt ne
+# rend pas l'erreur impossible, il rend son coût négligeable.
+NODE_NAMES = {
+    "detect", "metrics", "logs", "collect", "retrieve",
+    "assemble", "analyse", "verify", "plan", "policy", "approval",
+}
+
 
 def make_checkpointer(conn: sqlite3.Connection) -> SqliteSaver:
     """Construit le checkpointer en déclarant les types autorisés.
@@ -347,11 +356,22 @@ def _approval(clients: dict):
 
 # --- Assemblage ----------------------------------------------------------
 
-def build_graph(checkpointer=None, clients: dict | None = None):
+def build_graph(
+    checkpointer=None,
+    clients: dict | None = None,
+    stop_before: str | None = None,
+):
     """Construit le graphe. Séquentiel pour l'instant.
 
     `clients` accepte les clés "prometheus" et "loki". Absentes, chaque
     agent instancie son client réel.
+
+    `stop_before` fait s'arrêter le graphe avant le nœud nommé. Posé pour
+    le harnais de dataset de S6 : les six premiers nœuds sont
+    déterministes, donc s'arrêter avant `analyse` donne le contexte tel
+    que l'agent de raisonnement le reçoit en production, sans dépenser un
+    seul token. C'est la condition pour que le champ `input` des exemples
+    d'entraînement soit exactement ce que le modèle lira ensuite.
     """
     # Un champ renvoyé par un nœud mais absent de IncidentState est
     # silencieusement écarté par LangGraph. L'erreur est passée trois
@@ -362,6 +382,12 @@ def build_graph(checkpointer=None, clients: dict | None = None):
         raise RuntimeError(
             f"champs absents de IncidentState : {sorted(missing)} — "
             "ils seraient écartés sans erreur à l'exécution"
+        )
+
+    if stop_before and stop_before not in NODE_NAMES:
+        raise ValueError(
+            f"stop_before={stop_before!r} n'est pas un nœud — "
+            f"nœuds disponibles : {sorted(NODE_NAMES)}"
         )
 
     clients = clients or {}
@@ -392,13 +418,26 @@ def build_graph(checkpointer=None, clients: dict | None = None):
     graph.add_edge("policy", "approval")
     graph.add_edge("approval", END)
 
-    return graph.compile(checkpointer=checkpointer)
+    # `interrupt_before` exige un checkpointer : l'état est sérialisé au
+    # point d'arrêt. Tous les appelants en fournissent un, mais mieux
+    # vaut le dire ici qu'échouer dans LangGraph.
+    compile_kwargs: dict = {}
+    if stop_before:
+        if checkpointer is None:
+            raise RuntimeError(
+                "stop_before exige un checkpointer : l'état doit être "
+                "sérialisé au point d'arrêt"
+            )
+        compile_kwargs["interrupt_before"] = [stop_before]
+
+    return graph.compile(checkpointer=checkpointer, **compile_kwargs)
 
 
 def investigate(
     alert: Alert,
     thread_id: str | None = None,
     clients: dict | None = None,
+    stop_before: str | None = None,
 ) -> IncidentState:
     """Point d'entrée. Chaque exécution est un thread distinct.
 
@@ -411,7 +450,7 @@ def investigate(
     CHECKPOINT_DB.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(CHECKPOINT_DB, check_same_thread=False)
 
-    app = build_graph(make_checkpointer(conn), clients)
+    app = build_graph(make_checkpointer(conn), clients, stop_before=stop_before)
     config = {"configurable": {"thread_id": thread_id or alert.fired_at.isoformat()}}
 
     try:
@@ -420,7 +459,11 @@ def investigate(
         conn.close()
 
 
-def replay(incident_path: str, thread_id: str | None = None) -> IncidentState:
+def replay(
+    incident_path: str | Path,
+    thread_id: str | None = None,
+    stop_before: str | None = None,
+) -> dict:
     """Rejoue une investigation sur une capture stockée.
 
     Même graphe, mêmes nœuds, clients différents. Permet de mesurer le
@@ -452,11 +495,17 @@ def replay(incident_path: str, thread_id: str | None = None) -> IncidentState:
         # thread ferait s'accumuler les traces, le réducteur `append`
         # ajoutant les nouvelles étapes aux anciennes. Et un thread déjà
         # terminé ne réexécuterait rien.
+        #
+        # Le défaut ne peut pas être `alert.fired_at` : il est calculé
+        # depuis la capture, donc identique à chaque rejeu. `--runs 2` de
+        # `pipeline_eval.py` appelle `replay()` sans thread_id et
+        # réutiliserait le thread de la première exécution.
         thread_id=thread_id or f"replay-{record['incident_id']}-{time.time():.0f}",
         clients={
             "prometheus": ReplayPrometheus(incident_path),
             "loki": ReplayLoki(incident_path),
         },
+        stop_before=stop_before,
     )
 
 

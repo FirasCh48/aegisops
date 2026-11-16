@@ -30,4 +30,13 @@ data/incidents/*
 data/campaign.log
 !data/corpus/sandbox/
 !data/corpus/sandbox/*.md
-data/checkpoints.sqlitedata/campaign_*.log
+data/checkpoints.sqlite
+data/campaign_*.log
+
+# Dataset : les sorties écrites à la main sont suivies, le reste est dérivé
+data/dataset/seeds_input.jsonl
+data/dataset/seeds.jsonl
+data/dataset/raw.jsonl
+data/dataset/train.jsonl
+data/dataset/val.jsonl
+data/dataset/test.jsonl

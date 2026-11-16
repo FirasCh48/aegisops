@@ -11,10 +11,11 @@ juste, ne permettrait pas ce contrôle.
 """
 from __future__ import annotations
 
+import hashlib
+
 from aegisops.agents.collector import build_summary
 from aegisops.agents.parsing import parse_structured
 from aegisops.agents.state import IncidentState, RootCauseHypothesis
-from aegisops.core.llm import LLMProvider
 from aegisops.core.llm import LLMProvider, get_llm
 
 SYSTEM = """You are an SRE incident analyst. You receive observations \
@@ -51,6 +52,23 @@ TEMPLATE = """## EVIDENCE
   "ruled_out": ["hypothesis and what eliminates it"]
 }}"""
 
+# Empreinte du format d'invite, posée pour le dataset de fine-tuning de
+# S6.
+#
+# Les deux parties sont hachées ensemble parce que les deux définissent
+# ce que le modèle reçoit : `TEMPLATE` porte les observations et le
+# format de sortie, `SYSTEM` porte les règles — ne citer que ce qui est
+# présent, traiter un signal inchangé comme une preuve, avouer une preuve
+# insuffisante. Un exemple d'entraînement construit sans `SYSTEM`
+# apprendrait la tâche sans ses contraintes.
+#
+# Chaque exemple du dataset enregistre cette empreinte. Si l'invite est
+# modifiée plus tard, les exemples se signalent eux-mêmes comme bâtis sur
+# une version antérieure, au lieu d'être silencieusement périmés.
+PROMPT_VERSION = hashlib.sha256(
+    SYSTEM.encode("utf-8") + b"\x00" + TEMPLATE.encode("utf-8")
+).hexdigest()[:12]
+
 # Quatre passages suffisent : au-delà, le contexte d'un modèle de 1,5 Md
 # de paramètres se dégrade avant d'être plein. Mesuré en S3 : le document
 # attendu est au rang 1 ou 2 dans tous les cas utiles.
@@ -58,9 +76,21 @@ MAX_PASSAGES = 4
 # Les passages sont tronqués : la section « Discriminating signal » d'un
 # postmortem tient en quelques lignes, le reste est du contexte.
 PASSAGE_CHARS = 700
+# Plafond de la réponse. Valeur d'origine de S5-J1, inchangée : une
+# hypothèse est courte. Le planificateur a dû passer à 2500 en S5-J3
+# parce qu'un plan de cinq étapes dépassait 1200 et revenait tronqué —
+# ce seuil-ci n'a pas montré le même symptôme sur les 32 exécutions de
+# S5-J6.
+MAX_TOKENS = 1200
 
 
 def build_prompt(state: IncidentState) -> str:
+    """Partie « utilisateur » de l'invite : les observations et le format.
+
+    Les règles sont dans `SYSTEM` et passent par un autre canal. Tout
+    appelant qui reconstruit l'invite complète — le harnais de dataset de
+    S6, par exemple — doit transporter les deux.
+    """
     context = state["context"]
     summary = build_summary(
         context.alert.service, context.window, context.metrics, context.logs
@@ -87,7 +117,7 @@ class RootCauseAgent:
 
     def analyse(self, state: IncidentState) -> RootCauseHypothesis:
         prompt = build_prompt(state)
-        raw = self.provider.complete(prompt, system=SYSTEM, max_tokens=1200)
+        raw = self.provider.complete(prompt, system=SYSTEM, max_tokens=MAX_TOKENS)
 
         hypothesis, warning = parse_structured(raw, RootCauseHypothesis)
 
