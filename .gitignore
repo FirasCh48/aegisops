@@ -40,3 +40,12 @@ data/dataset/raw.jsonl
 data/dataset/train.jsonl
 data/dataset/val.jsonl
 data/dataset/test.jsonl
+
+# Les sorties sont écrites à la main depuis les postmortems. C'est du
+# contenu rédigé, au même titre que les postmortems eux-mêmes, et la
+# règle `data/dataset/*` plus haut les emportait avec les fichiers
+# dérivés. Le dossier doit être désexclu avant ses fichiers : git
+# n'entre pas dans un répertoire ignoré, donc une négation sur les
+# fichiers seuls n'aurait aucun effet.
+!data/dataset/outputs/
+!data/dataset/outputs/*.json

@@ -1,0 +1,49 @@
+{
+  "root_cause": "checkout-service is CPU-bound: its request loop cannot keep up, so every outbound call waits in the service itself and all dependencies appear slower at once",
+  "confidence": 0.75,
+  "evidence": [
+    {
+      "source": "metric:p95_by_dependency[payment-service]",
+      "observation": "rose from 0.0994 to 0.2412, x2.43",
+      "supports": "calls toward payment-service take longer"
+    },
+    {
+      "source": "metric:p95_by_dependency[inventory-service]",
+      "observation": "rose from 0.1891 to 0.3974, x2.1",
+      "supports": "calls toward inventory-service slow by a comparable factor, in the same window - the delay is upstream of both"
+    },
+    {
+      "source": "metric:dependency_failures[inventory-service]",
+      "observation": "stayed at 0.0",
+      "supports": "the dependencies are slow, not failing - nothing is broken downstream"
+    },
+    {
+      "source": "metric:db_pool_usage",
+      "observation": "stayed at 0.0 for the whole window",
+      "supports": "nothing queues on the database pool"
+    }
+  ],
+  "ruled_out": [
+    "one slow dependency - both p95_by_dependency series rose together, x2.43 and x2.1",
+    "connection pool exhaustion - db_pool_usage stayed at 0.0 throughout",
+    "inventory-service internal error - dependency_error appears once, with status=409, against dependency_failures[inventory-service] flat at 0.0"
+  ],
+  "_available_sources": [
+    "metric:db_pool_usage   (non signalée)",
+    "metric:memory_mb   (non signalée)",
+    "metric:cache_entries   (non signalée)",
+    "metric:stock_total   (non signalée)",
+    "metric:p95_by_dependency[inventory-service]",
+    "metric:p95_by_dependency[payment-service]",
+    "metric:dependency_failures[inventory-service]   (non signalée)",
+    "log:order_created   (1604)",
+    "log:fault_injected   (1)",
+    "log:fault_cleared   (1)",
+    "log:dependency_error   (1)",
+    "log:payment_authorized   (1604)",
+    "log:stock_reserved   (1604)",
+    "log:out_of_stock   (1)"
+  ],
+  "_scenario": "cpu_saturation",
+  "_postmortem": "data/corpus/sandbox/cpu_saturation.md"
+}

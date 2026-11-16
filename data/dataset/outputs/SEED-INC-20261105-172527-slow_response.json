@@ -1,0 +1,58 @@
+{
+  "root_cause": "payment-service answers far slower than its callers allow: responses exceed the 2 s budget checkout-service gives it, so calls toward it time out while the rest of the system stays healthy",
+  "confidence": 0.9,
+  "evidence": [
+    {
+      "source": "metric:p95_by_dependency[payment-service]",
+      "observation": "rose from 0.097 to 4.85, x50.02",
+      "supports": "payment-service response time is the thing that changed"
+    },
+    {
+      "source": "log:dependency_timeout",
+      "observation": "694 timeouts toward payment-service, each carrying timeout_s=2.0",
+      "supports": "the responses exceed the 2 s budget - a p95 of 4.85 s sits well above it"
+    },
+    {
+      "source": "metric:dependency_failures[payment-service]",
+      "observation": "rose from 0.0 to 4.586",
+      "supports": "the failures are confined to that one dependency"
+    },
+    {
+      "source": "metric:p95_by_dependency[inventory-service]",
+      "observation": "rose only from 0.0977 to 0.1636, x1.67",
+      "supports": "the other dependency barely moved - the slowdown sits in payment-service, not in the caller"
+    },
+    {
+      "source": "metric:db_pool_usage",
+      "observation": "stayed at 0.0 for the whole window",
+      "supports": "nothing queues on checkout-service's database pool"
+    }
+  ],
+  "ruled_out": [
+    "CPU saturation in checkout-service - p95_by_dependency[payment-service] rose x50.02 while p95_by_dependency[inventory-service] rose only x1.67; a CPU-bound caller slows both by comparable factors",
+    "connection pool exhaustion - db_pool_usage stayed at 0.0 throughout",
+    "an internal error in a dependency - dependency_failures[inventory-service] stayed at 0.0 and dependency_error appears once with status=409; the 694 failures are dependency_timeout events, not error responses",
+    "memory leak - memory_mb went 89.4 to 99.6 and cache_entries stayed at 0, both among the metrics that stayed normal"
+  ],
+  "_available_sources": [
+    "metric:db_pool_usage   (non signalée)",
+    "metric:memory_mb   (non signalée)",
+    "metric:cache_entries   (non signalée)",
+    "metric:stock_total   (non signalée)",
+    "metric:p95_by_dependency[inventory-service]",
+    "metric:p95_by_dependency[payment-service]",
+    "metric:dependency_failures[inventory-service]   (non signalée)",
+    "metric:dependency_failures[payment-service]",
+    "metric:error_rate",
+    "log:order_created   (899)",
+    "log:dependency_timeout   (694)",
+    "log:dependency_error   (1)",
+    "log:payment_authorized   (1593)",
+    "log:fault_injected   (1)",
+    "log:fault_cleared   (1)",
+    "log:stock_reserved   (1592)",
+    "log:out_of_stock   (1)"
+  ],
+  "_scenario": "slow_response",
+  "_postmortem": "data/corpus/sandbox/slow_response.md"
+}

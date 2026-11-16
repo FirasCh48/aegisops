@@ -1,0 +1,49 @@
+{
+  "root_cause": "inventory-service fails internally on a corrupted stock ledger: the checksum mismatch makes it return 500s, and checkout-service surfaces them as dependency failures",
+  "confidence": 0.9,
+  "evidence": [
+    {
+      "source": "log:inventory_internal_error",
+      "observation": "334 events, all error_type=StockLedgerCorruption with a checksum mismatch on the stock ledger",
+      "supports": "the fault is internal to inventory-service and names itself"
+    },
+    {
+      "source": "log:dependency_error",
+      "observation": "334 errors toward inventory-service, status=500",
+      "supports": "checkout-service sees the failure, it does not cause it - the counts match one for one"
+    },
+    {
+      "source": "metric:dependency_failures[inventory-service]",
+      "observation": "rose from 0.0 to 2.5203",
+      "supports": "the failure is confined to one dependency"
+    },
+    {
+      "source": "metric:db_pool_usage",
+      "observation": "stayed at 0.0 for the whole window",
+      "supports": "checkout-service itself is healthy - nothing queues on its database pool"
+    }
+  ],
+  "ruled_out": [
+    "connection pool exhaustion in checkout-service - db_pool_usage stayed at 0.0 throughout, where an exhausted pool climbs toward 1",
+    "a merely slow inventory-service - p95_by_dependency[inventory-service] rose only x2.25 while 334 inventory_internal_error events were emitted; latency alone produces no such event",
+    "memory leak - memory_mb went 89.3 to 93.3 and cache_entries stayed at 0, both among the metrics that stayed normal"
+  ],
+  "_available_sources": [
+    "metric:db_pool_usage   (non signalée)",
+    "metric:memory_mb   (non signalée)",
+    "metric:cache_entries   (non signalée)",
+    "metric:stock_total   (non signalée)",
+    "metric:p95_by_dependency[inventory-service]",
+    "metric:p95_by_dependency[payment-service]",
+    "metric:dependency_failures[inventory-service]",
+    "log:order_created   (1302)",
+    "log:dependency_error   (334)",
+    "log:payment_authorized   (1302)",
+    "log:stock_reserved   (1302)",
+    "log:inventory_internal_error   (334)",
+    "log:fault_injected   (1)",
+    "log:fault_cleared   (1)"
+  ],
+  "_scenario": "internal_error",
+  "_postmortem": "data/corpus/sandbox/internal_error.md"
+}

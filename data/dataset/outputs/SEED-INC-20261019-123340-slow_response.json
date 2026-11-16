@@ -1,0 +1,41 @@
+{
+  "root_cause": "",
+  "confidence": 0.0,
+  "evidence": [
+    {
+      "source": "",
+      "observation": "",
+      "supports": ""
+    }
+  ],
+  "ruled_out": [
+    ""
+  ],
+  "_available_sources": [
+    "metric:db_pool_usage   (non signalée)",
+    "metric:memory_mb   (non signalée)",
+    "metric:cache_entries   (non signalée)",
+    "metric:stock_total   (non signalée)",
+    "metric:p95_by_dependency[inventory-service]",
+    "metric:p95_by_dependency[payment-service]",
+    "metric:dependency_failures[inventory-service]",
+    "metric:dependency_failures[payment-service]",
+    "metric:error_rate",
+    "log:order_created   (1353)",
+    "log:dependency_timeout   (876)",
+    "log:dependency_error   (771)",
+    "log:connection_leaked   (10)",
+    "log:service_started   (1)",
+    "log:fault_injected   (1)",
+    "log:payment_authorized   (2229)",
+    "log:service_started   (1)",
+    "log:fault_injected   (1)",
+    "log:fault_cleared   (1)",
+    "log:stock_reserved   (2228)",
+    "log:out_of_stock   (771)",
+    "log:service_started   (1)",
+    "log:stock_reset   (1)"
+  ],
+  "_scenario": "slow_response",
+  "_postmortem": "data/corpus/sandbox/slow_response.md"
+}

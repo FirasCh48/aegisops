@@ -1,0 +1,46 @@
+{
+  "root_cause": "checkout-service is CPU-bound: its request loop cannot keep up, so every outbound call waits in the service itself and all dependencies appear slower at once",
+  "confidence": 0.75,
+  "evidence": [
+    {
+      "source": "metric:p95_by_dependency[inventory-service]",
+      "observation": "rose from 0.1642 to 0.3931, x2.39",
+      "supports": "calls toward inventory-service take longer"
+    },
+    {
+      "source": "metric:p95_by_dependency[payment-service]",
+      "observation": "rose from 0.1525 to 0.2781, x1.82",
+      "supports": "calls toward payment-service slow by a comparable factor, in the same window - the delay is upstream of both"
+    },
+    {
+      "source": "metric:db_pool_usage",
+      "observation": "stayed at 0.0 for the whole window",
+      "supports": "nothing queues on the database pool, so the wait is not I/O on postgres"
+    },
+    {
+      "source": "metric:memory_mb",
+      "observation": "went 89.4 to 97.4, inside its baseline range",
+      "supports": "the process is not growing - the pressure is on the CPU, not on memory"
+    }
+  ],
+  "ruled_out": [
+    "one slow dependency - both p95_by_dependency series rose together, x2.39 and x1.82; a single slow dependency moves only its own",
+    "connection pool exhaustion - db_pool_usage stayed at 0.0, where an exhausted pool climbs toward 1",
+    "memory leak - memory_mb stayed inside its baseline range and cache_entries stayed at 0, both among the metrics that stayed normal"
+  ],
+  "_available_sources": [
+    "metric:db_pool_usage   (non signalée)",
+    "metric:memory_mb   (non signalée)",
+    "metric:cache_entries   (non signalée)",
+    "metric:stock_total   (non signalée)",
+    "metric:p95_by_dependency[inventory-service]",
+    "metric:p95_by_dependency[payment-service]",
+    "log:order_created   (1579)",
+    "log:fault_injected   (1)",
+    "log:fault_cleared   (1)",
+    "log:payment_authorized   (1579)",
+    "log:stock_reserved   (1578)"
+  ],
+  "_scenario": "cpu_saturation",
+  "_postmortem": "data/corpus/sandbox/cpu_saturation.md"
+}

@@ -1,0 +1,56 @@
+{
+  "root_cause": "regression shipped by the v2.8 deployment of checkout-service: the new build leaks pooled database connections, and the pool saturates once the release is live",
+  "confidence": 0.9,
+  "evidence": [
+    {
+      "source": "log:deployment",
+      "observation": "2 deployment events inside the window",
+      "supports": "a release landed during the incident, which is what distinguishes this from a standing leak"
+    },
+    {
+      "source": "log:db_pool_timeout",
+      "observation": "654 timeout events, all carrying version=v2.8",
+      "supports": "the failures belong to the newly deployed build"
+    },
+    {
+      "source": "log:connection_leaked",
+      "observation": "10 leak events, carrying version=v2.8",
+      "supports": "the mechanism the regression introduced"
+    },
+    {
+      "source": "metric:db_pool_usage",
+      "observation": "rose from 0.0 to 0.609",
+      "supports": "the pool saturates as the leaked connections accumulate"
+    },
+    {
+      "source": "metric:error_rate",
+      "observation": "rose from 0.0 to 0.9598",
+      "supports": "the user-visible impact of the saturation"
+    }
+  ],
+  "ruled_out": [
+    "a standing connection leak unrelated to any release - deployment appears twice in the window and both db_pool_timeout and connection_leaked carry version=v2.8, so the leak starts with the new build",
+    "CPU saturation - p95_by_dependency rose on both dependencies, x2.54 and x2.32, but db_pool_usage rose from zero and connection_leaked appeared",
+    "memory leak - memory_mb went 89.9 to 94.5 and cache_entries stayed at 0, both among the metrics that stayed normal"
+  ],
+  "_available_sources": [
+    "metric:db_pool_usage",
+    "metric:memory_mb   (non signalée)",
+    "metric:cache_entries   (non signalée)",
+    "metric:stock_total   (non signalée)",
+    "metric:p95_by_dependency[inventory-service]",
+    "metric:p95_by_dependency[payment-service]",
+    "metric:dependency_failures[postgres]",
+    "metric:error_rate",
+    "log:order_created   (966)",
+    "log:db_pool_timeout   (654)",
+    "log:connection_leaked   (10)",
+    "log:fault_injected   (2)",
+    "log:deployment   (2)",
+    "log:fault_cleared   (2)",
+    "log:payment_authorized   (1620)",
+    "log:stock_reserved   (1620)"
+  ],
+  "_scenario": "bad_release",
+  "_postmortem": "data/corpus/sandbox/bad_release.md"
+}

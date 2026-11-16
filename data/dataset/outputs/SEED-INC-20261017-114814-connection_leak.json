@@ -1,0 +1,58 @@
+{
+  "root_cause": "connection pool leak in checkout-service: connections acquired on the request path are never returned, so the pool saturates and later requests fail waiting for one",
+  "confidence": 0.85,
+  "evidence": [
+    {
+      "source": "metric:db_pool_usage",
+      "observation": "rose from 0.0 to 0.778, having been flat at zero through the baseline",
+      "supports": "the pool is exhausted, not merely busy"
+    },
+    {
+      "source": "log:connection_leaked",
+      "observation": "10 leak events, none in the baseline",
+      "supports": "connections are acquired and not returned - the leak itself"
+    },
+    {
+      "source": "log:db_pool_timeout",
+      "observation": "713 timeout events, none in the baseline",
+      "supports": "requests fail waiting for a connection, downstream of the exhaustion"
+    },
+    {
+      "source": "metric:dependency_failures[postgres]",
+      "observation": "rose from 0.0 to 4.5388",
+      "supports": "the connection acquisitions that never completed"
+    },
+    {
+      "source": "metric:error_rate",
+      "observation": "rose from 0.0 to 0.9606",
+      "supports": "the user-visible impact follows the pool saturation, it does not precede it"
+    }
+  ],
+  "ruled_out": [
+    "bad release (v2.8 deployment) - no deployment event appears in the window, and both db_pool_timeout and connection_leaked carry version=v2.7, so the running version did not change",
+    "inventory-service internal error masked as out-of-stock - dependency_error is only x12 with status=409 while db_pool_usage reached 0.778; that pattern leaves db_pool_usage near 0.1",
+    "memory leak - memory_mb went 90.4 to 93.5 and cache_entries stayed at 0, both listed among the metrics that stayed normal"
+  ],
+  "_available_sources": [
+    "metric:db_pool_usage",
+    "metric:memory_mb   (non signalée)",
+    "metric:cache_entries   (non signalée)",
+    "metric:stock_total   (non signalée)",
+    "metric:p95_by_dependency[inventory-service]   (non signalée)",
+    "metric:p95_by_dependency[payment-service]   (non signalée)",
+    "metric:dependency_failures[postgres]",
+    "metric:dependency_failures[inventory-service]",
+    "metric:error_rate",
+    "log:order_created   (847)",
+    "log:db_pool_timeout   (713)",
+    "log:dependency_error   (12)",
+    "log:connection_leaked   (10)",
+    "log:fault_injected   (1)",
+    "log:fault_cleared   (1)",
+    "log:payment_authorized   (1560)",
+    "log:stock_reserved   (1560)",
+    "log:out_of_stock   (12)"
+  ],
+  "_scenario": "connection_leak",
+  "_postmortem": "data/corpus/sandbox/connection_leak.md"
+}
