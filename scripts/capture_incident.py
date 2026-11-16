@@ -182,6 +182,7 @@ def capture(
 
     tag = " [holdout]" if holdout else ""
     print(f"\n=== capture : {scenario_name}{tag} ===")
+    verify_infra()
     restart_services()
     reset_environment()
     verify_healthy()
@@ -341,6 +342,28 @@ def capture(
     if baseline_errors:
         print(f"          ATTENTION : baseline polluée {baseline_errors}")
     return path
+
+
+
+def verify_infra() -> None:
+    """Postgres, Prometheus et Loki, avant de toucher aux services.
+
+    Sans ce contrôle, une infra arrêtée se manifeste par
+    « checkout-service ne répond pas » — une conséquence, trente
+    secondes plus tard, qui envoie chercher la panne au mauvais endroit.
+    Trois connexions TCP la nomment tout de suite.
+    """
+    import socket
+
+    for name, port in (("postgres", 5432), ("prometheus", 9090), ("loki", 3100)):
+        with socket.socket() as s:
+            s.settimeout(2)
+            if s.connect_ex(("127.0.0.1", port)) != 0:
+                raise SystemExit(
+                    f"ERREUR: {name} (port {port}) ne repond pas.\n"
+                    "Demarrer Docker Desktop, puis le projet sandbox."
+                )
+    print("  [infra]  postgres, prometheus, loki joignables")
 
 
 def main() -> None:
